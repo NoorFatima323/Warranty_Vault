@@ -4,6 +4,7 @@
   "description": "AI-powered consumer electronics warranty tracker & statutory RMA claim engine. Features optical receipt OCR parsing, live countdown timers, and 1-click legal replacement demand letters citing Magnuson-Moss, UCC § 2-314 & EU Directive 2019/771.",
   "main": "index.html",
   "scripts": {
+    "build": "echo 'WarrantyVault static build ready.'",
     "dev": "vite frontend --port 3000 --open",
     "serve": "python -m http.server 3000",
     "backend": "uvicorn backend.server:app --reload --port 8000",
