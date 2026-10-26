@@ -1797,13 +1797,25 @@ button:active { transform: scale(0.98); }
   border-right: 1px solid rgba(255, 255, 255, 0.07);
   display: flex;
   flex-direction: column;
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  bottom: 0;
   height: 100vh;
   z-index: 120;
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+.app-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+.app-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
 }
 
 /* Sidebar Header / Brand */
@@ -2087,6 +2099,7 @@ button:active { transform: scale(0.98); }
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  margin-left: 270px;
 }
 
 /* Topbar in App Layout */
@@ -2190,6 +2203,9 @@ button:active { transform: scale(0.98); }
   .app-sidebar.open {
     transform: translateX(0);
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+  }
+  .app-content-wrapper {
+    margin-left: 0;
   }
   .sidebar-toggle-btn {
     display: grid;
