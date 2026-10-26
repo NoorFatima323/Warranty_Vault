@@ -1,0 +1,3 @@
+# Ignore backend and Dockerfile for fast Vercel edge deployment
+backend/
+Dockerfile
