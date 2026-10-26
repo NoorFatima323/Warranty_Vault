@@ -1165,7 +1165,7 @@ background: currentColor; vertical-align: -0.12em; opacity: 0; }
       
     <!-- Floating Demo Quick Access Trigger -->
     <aside class="floating-demo-dock" id="floating-demo-dock" aria-label="Watch How It Works Reel">
-      <a href="javascript:void(0)" onclick="openProductVideoModal()" class="btn-open-demo floating-demo-card" style="text-decoration: none;">
+      <a href="javascript:void(0)" onclick="event.preventDefault(); event.stopPropagation(); openProductVideoModal();" class="floating-demo-card" style="text-decoration: none; cursor: pointer;">
         <div class="floating-demo-pulse"></div>
         <div class="floating-demo-body">
           <span class="floating-demo-badge">▶ WATCH 60s REEL • 1-CLICK</span>

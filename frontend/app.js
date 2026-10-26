@@ -941,13 +941,7 @@ Sincerely,
       }
     });
 
-    // Demo View Launch Triggers (Nav, Hero, Floating Dock)
-    document.querySelectorAll('.btn-open-demo').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        openDemoView();
-      });
-    });
+    // (Legacy demo trigger removed in favor of modular page routing)
 
     // Back to Landing Page Button
     const backBtn = document.getElementById('btn-back-to-landing');
@@ -1013,15 +1007,6 @@ Sincerely,
 
   // ==================== INITIALIZATION ====================
   document.addEventListener('DOMContentLoaded', () => {
-    // Wire up all demo buttons across any page
-    document.querySelectorAll('.btn-open-demo').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        if (!window.location.pathname.endsWith('vault.html')) {
-          e.preventDefault();
-          window.location.href = 'vault.html';
-        }
-      });
-    });
 
     const isDemoPage = !!document.getElementById('app-view') || 
                        !!document.getElementById('warranty-grid') || 

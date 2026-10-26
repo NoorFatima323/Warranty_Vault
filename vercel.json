@@ -1,4 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "cleanUrls": true
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/vault", "destination": "/frontend/vault.html" },
+    { "source": "/login", "destination": "/frontend/login.html" },
+    { "source": "/scanner", "destination": "/frontend/scanner.html" },
+    { "source": "/claims", "destination": "/frontend/claims.html" },
+    { "source": "/analytics", "destination": "/frontend/analytics.html" },
+    { "source": "/demo", "destination": "/frontend/demo.html" },
+    { "source": "/screens_hub", "destination": "/frontend/screens_hub.html" }
+  ]
 }
