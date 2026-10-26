@@ -955,8 +955,10 @@ Sincerely,
 
   // ==================== VIEW CONTROLLER ====================
   function openDemoView(autoScroll = true) {
-    if (!window.location.pathname.endsWith('demo.html')) {
-      window.location.href = 'demo.html';
+    const isFrontend = window.location.pathname.includes('/frontend/');
+    const demoPage = isFrontend ? 'demo.html' : 'frontend/demo.html';
+    if (!window.location.pathname.includes('demo')) {
+      window.location.href = demoPage;
       return;
     }
     const appView = document.getElementById('app-view');
@@ -974,7 +976,8 @@ Sincerely,
   }
 
   function openLandingView(autoScroll = true) {
-    window.location.href = 'index.html';
+    const isFrontend = window.location.pathname.includes('/frontend/');
+    window.location.href = isFrontend ? '../index.html' : 'index.html';
   }
 
   function openManualModal() {
@@ -986,7 +989,20 @@ Sincerely,
   }
 
   // Export functions globally
-  window.openWarrantyApp = openDemoView;
+  window.openDemoView = openDemoView;
+  if (!window.openWarrantyApp) {
+    window.openWarrantyApp = function(target) {
+      const isFrontend = window.location.pathname.includes('/frontend/');
+      const page = target || (isFrontend ? 'vault.html' : 'frontend/vault.html');
+      const loginPage = isFrontend ? 'login.html' : 'frontend/login.html';
+      const user = localStorage.getItem('warranty_vault_auth_user');
+      if (user) {
+        window.location.href = page;
+      } else {
+        window.location.href = loginPage + '?redirect=' + encodeURIComponent(page);
+      }
+    };
+  }
   window.closeWarrantyApp = openLandingView;
   window.openClaimModal = openClaimModal;
   window.generateLegalLetter = generateLegalLetter;
