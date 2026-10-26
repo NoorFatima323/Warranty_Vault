@@ -59,3 +59,7 @@ scratch/
 temp/
 tmp/
 *.tmp
+
+# Hackathon brainstorming files (Internal)
+Hackathon_Project_Ideas.html
+Hackathon_Project_Ideas.pdf
