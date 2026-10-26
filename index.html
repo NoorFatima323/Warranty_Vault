@@ -1,0 +1,2231 @@
+<!DOCTYPE html>
+<html lang="en"><head><script id="aura-preview-performance-controller">
+(function() {
+if (window.__auraPreviewPerformanceController) return;
+const nativeRequestAnimationFrame = window.requestAnimationFrame
+? window.requestAnimationFrame.bind(window)
+: function(callback) { return window.setTimeout(function() { callback(Date.now()); }, 16); };
+const nativeCancelAnimationFrame = window.cancelAnimationFrame
+? window.cancelAnimationFrame.bind(window)
+: window.clearTimeout.bind(window);
+const nativeSetInterval = window.setInterval.bind(window);
+let paused = false;
+let nextFrameId = 1;
+const frameRecords = new Map();
+const pausedFrameCallbacks = new Map();
+const style = document.createElement('style');
+style.id = 'aura-preview-performance-style';
+style.textContent = [
+'html[data-aura-preview-paused="true"] *,',
+'html[data-aura-preview-paused="true"] *::before,',
+'html[data-aura-preview-paused="true"] *::after {',
+'  animation-play-state: paused !important;',
+'  transition-duration: 0s !important;',
+'  scroll-behavior: auto !important;',
+'}'
+].join('\n');
+document.head.appendChild(style);
+window.requestAnimationFrame = function(callback) {
+const frameId = nextFrameId++;
+if (paused) {
+pausedFrameCallbacks.set(frameId, callback);
+frameRecords.set(frameId, { paused: true });
+return frameId;
+}
+const nativeFrameId = nativeRequestAnimationFrame(function(timestamp) {
+frameRecords.delete(frameId);
+callback(timestamp);
+});
+frameRecords.set(frameId, { nativeFrameId: nativeFrameId });
+return frameId;
+};
+window.cancelAnimationFrame = function(frameId) {
+const record = frameRecords.get(frameId);
+pausedFrameCallbacks.delete(frameId);
+if (record && typeof record.nativeFrameId !== 'undefined') {
+nativeCancelAnimationFrame(record.nativeFrameId);
+}
+frameRecords.delete(frameId);
+};
+window.setInterval = function(callback, delay) {
+const args = Array.prototype.slice.call(arguments, 2);
+return nativeSetInterval(function() {
+if (paused) return;
+callback.apply(this, args);
+}, delay);
+};
+const flushPausedFrames = function() {
+const callbacks = Array.from(pausedFrameCallbacks.entries());
+pausedFrameCallbacks.clear();
+callbacks.forEach(function(entry) {
+const frameId = entry[0];
+const callback = entry[1];
+const nativeFrameId = nativeRequestAnimationFrame(function(timestamp) {
+frameRecords.delete(frameId);
+callback(timestamp);
+});
+frameRecords.set(frameId, { nativeFrameId: nativeFrameId });
+});
+};
+const setPaused = function(nextPaused) {
+const shouldPause = Boolean(nextPaused);
+if (paused === shouldPause) return;
+paused = shouldPause;
+document.documentElement.toggleAttribute('data-aura-preview-paused', paused);
+if (!paused) {
+flushPausedFrames();
+}
+};
+window.__auraPreviewPerformanceController = {
+setPaused: setPaused,
+get paused() {
+return paused;
+}
+};
+window.addEventListener('message', function(event) {
+if (event.source !== window.parent) return;
+if (!event.data || event.data.type !== 'aura-preview-performance-mode') return;
+setPaused(event.data.paused);
+});
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Never throw away broken electronics still under warranty. Optical receipt scanning, real-time microsecond countdown timers, and 1-click statutory RMA demand letters.">
+<title>WarrantyVault — AI Hardware RMA &amp; Statutory Claim Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+theme: {
+extend: {
+colors: { ink: '#08090A', acid: '#C8FF3D' },
+fontFamily: {
+sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+display: ['"Inter Tight"', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+},
+},
+},
+};
+</script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+:root { --acid: #C8FF3D; --ink: #08090A; }
+html { -webkit-font-smoothing: antialiased; }
+body { overscroll-behavior-y: none; }
+/* Lenis */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-stopped { overflow: hidden; }
+.font-display { font-family: "Inter Tight", Inter, ui-sans-serif, system-ui, sans-serif; }
+/* ---------- Reveal primitives (only hidden when JS+GSAP are live) ---------- */
+.js [data-reveal],
+.js [data-fade],
+.js [data-stagger] > * { opacity: 0; }
+.js [data-clip] { clip-path: inset(0 0 100% 0); }
+/* line masks used by the text splitter */
+.line-mask { display: block; overflow: hidden; }
+.line-inner { display: block; will-change: transform; }
+.word { display: inline-block; white-space: pre; }
+/* ---------- Preloader ---------- */
+#preloader { position: fixed; inset: 0; z-index: 200; background: var(--ink); display: grid; place-items: center; }
+#preloader.is-done { pointer-events: none; }
+.pl-bar { height: 1px; background: rgba(255,255,255,.18); width: min(46vw, 420px); position: relative; overflow: hidden; }
+.pl-bar span { position: absolute; inset: 0; background: var(--acid); transform-origin: left center; transform: scaleX(0); }
+.pl-panel { position: fixed; inset: 0; z-index: 199; background: var(--ink); transform-origin: top center; }
+/* ---------- Cursor ---------- */
+#cursor, #cursorDot { position: fixed; top: 0; left: 0; z-index: 300; pointer-events: none; border-radius: 999px; mix-blend-mode: difference; opacity: 0; }
+#cursor { width: 40px; height: 40px; border: 1px solid rgba(255,255,255,.85); margin: -20px 0 0 -20px; }
+#cursorDot { width: 5px; height: 5px; background: #fff; margin: -2.5px 0 0 -2.5px; }
+#cursor .c-label { position:absolute; inset:0; display:grid; place-items:center; font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:#fff; opacity:0; }
+@media (hover: none), (pointer: coarse) { #cursor, #cursorDot { display: none; } }
+/* ---------- Grain + progress ---------- */
+#grain { position: fixed; inset: -50%; z-index: 150; pointer-events: none; opacity: .05; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+#progress { position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 160; transform: scaleX(0); transform-origin: left center; background: var(--acid); }
+/* ---------- Marquee ---------- */
+.marquee { display: flex; width: max-content; will-change: transform; }
+.marquee > * { flex: none; }
+/* ---------- Aperture ---------- */
+#apSvg { will-change: transform; }
+#apSvg text { text-transform: none; }
+/* ---------- Typewriter (creator stories) ---------- */
+/* A hidden copy of the final text holds the exact box, and the typed text is
+laid over it — so wrapping is identical and nothing below ever shifts. */
+[data-type] { position: relative; }
+.type-ghost { visibility: hidden; }
+.type-live { position: absolute; left: 0; top: 0; width: 100%; }
+.type-line { display: inline; }
+.caret { display: inline-block; width: 1px; height: 1em; margin-left: 2px;
+background: currentColor; vertical-align: -0.12em; opacity: 0; }
+.caret.is-live { animation: caretBlink .9s steps(1, end) infinite; }
+@keyframes caretBlink { 0%, 49% { opacity: .9 } 50%, 100% { opacity: 0 } }
+/* ---------- FAQ ---------- */
+.faq-body { overflow: hidden; height: 0; }
+.faq-item.is-open .faq-plus { transform: rotate(135deg); }
+.faq-plus { transition: transform .5s cubic-bezier(.16,1,.3,1); }
+/* ---------- Misc ---------- */
+.hero-media { will-change: transform; }
+[data-magnetic] { will-change: transform; }
+.link-underline { background-image: linear-gradient(currentColor, currentColor); background-size: 0% 1px; background-repeat: no-repeat; background-position: 0 100%; transition: background-size .5s cubic-bezier(.16,1,.3,1); }
+.link-underline:hover { background-size: 100% 1px; }
+.edge-fade { -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+@media (prefers-reduced-motion: reduce) {
+.js [data-reveal], .js [data-fade], .js [data-stagger] > * { opacity: 1 !important; }
+.js [data-clip] { clip-path: none !important; }
+#preloader, .pl-panel, #grain { display: none !important; }
+}
+</style>
+
+    <!-- WarrantyVault Additional Assets -->
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+    <script src="auth.js"></script>
+    <script>
+      // Web App Gateway: Redirects to login if unauthenticated, or directly to vault if authenticated
+      function openWarrantyApp(target) {
+        var page = target || 'vault.html';
+        if (window.WarrantyAuth) {
+          WarrantyAuth.checkAuthAndGo(page);
+        } else {
+          var user = localStorage.getItem('warranty_vault_auth_user');
+          if (user) {
+            window.location.href = page;
+          } else {
+            window.location.href = 'login.html?redirect=' + encodeURIComponent(page);
+          }
+        }
+      }
+      function closeWarrantyApp() {
+        window.location.href = 'index.html';
+      }
+
+      window.addEventListener('load', function() {
+        if (window.location.hash === '#demo') {
+          openWarrantyApp('vault.html');
+        }
+      });
+    </script>
+  </head>
+  <body class="bg-[#08090A] text-white selection:bg-[#C8FF3D] selection:text-[#08090A]">
+
+    <!-- VIEW 1: NIVO ONE LANDING PAGE (DEFAULT / FIRST VIEW) -->
+    <div id="landing-view" class="landing-view-container">
+      
+
+<script>
+  // Mark JS on so pre-animation hidden states apply. Removed again if GSAP never loads.
+  document.documentElement.classList.add('js');
+</script>
+<!-- Sentinel: display:none only once the Tailwind CDN has injected its utilities.
+     Also safelists the classes the nav swaps in at runtime, so the CDN's JIT
+     has already generated them before the first theme change. -->
+<div id="twProbe" class="hidden text-neutral-900 text-neutral-500 hover:text-neutral-900 text-white text-white/70 hover:text-white bg-ink bg-white text-ink" aria-hidden="true"></div>
+
+<!-- ============ PRELOADER ============ -->
+<div id="preloader">
+  <div class="w-full px-6 text-white">
+    <div class="mx-auto flex max-w-[420px] items-end justify-between pb-5">
+      <span class="font-display text-[11px] uppercase tracking-[0.34em] text-[#C8FF3D]" id="plWord">Calibrating Statutory Shield</span>
+      <span class="font-display text-[11px] tabular-nums tracking-[0.2em] text-white/80"><span id="plNum">0</span>%</span>
+    </div>
+    <div class="pl-bar mx-auto"><span id="plFill"></span></div>
+    <div class="mx-auto mt-6 max-w-[420px] overflow-hidden">
+      <p class="font-display text-[10px] uppercase tracking-[0.34em] text-white/35">WarrantyVault — Hardware RMA Engine</p>
+    </div>
+  </div>
+</div>
+<div class="pl-panel" id="plPanel"></div>
+
+<!-- ============ CHROME ============ -->
+<div id="progress"></div>
+<div id="grain"></div>
+<div id="cursor"><span class="c-label"></span></div>
+<div id="cursorDot"></div>
+
+<!-- ============ ANNOUNCE ============ -->
+<div class="relative z-[60] overflow-hidden bg-acid py-2.5 text-ink">
+  <div class="marquee" data-marquee="" data-speed="0.35">
+    <div class="flex items-center gap-8 pr-8 text-[11px] font-medium uppercase tracking-[0.18em]">
+      <span>OVER $3.8M IN HARDWARE CLAIMS RECOVERED</span><span class="opacity-40">/</span>
+      <span>STATUTORY CONSUMER LEGAL SHIELD ACTIVE</span><span class="opacity-40">/</span>
+      <span>ZERO FADED RECEIPTS</span><span class="opacity-40">/</span>
+      <span>MAGNUSON-MOSS & EU 2-YEAR LEGAL PROTECTION</span><span class="opacity-40">/</span>
+    </div>
+    <div class="flex items-center gap-8 pr-8 text-[11px] font-medium uppercase tracking-[0.18em]" aria-hidden="true">
+      <span>OVER $3.8M IN HARDWARE CLAIMS RECOVERED</span><span class="opacity-40">/</span>
+      <span>STATUTORY CONSUMER LEGAL SHIELD ACTIVE</span><span class="opacity-40">/</span>
+      <span>ZERO FADED RECEIPTS</span><span class="opacity-40">/</span>
+      <span>MAGNUSON-MOSS & EU 2-YEAR LEGAL PROTECTION</span><span class="opacity-40">/</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ HEADER ============ -->
+<header id="siteHeader" class="fixed inset-x-0 top-9 z-50 transition-all duration-300" data-nav-theme="light">
+  <nav class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8 lg:px-10" aria-label="Main navigation">
+    <a href="#top" class="nav-ink flex items-center gap-3 text-white transition hover:opacity-85" data-cursor="Top">
+      <span class="grid h-9 w-9 place-items-center rounded-full border border-white/20 bg-white/5 backdrop-blur-md shadow-[0_0_15px_rgba(200,255,61,0.12)]">
+        <i data-lucide="shield" class="h-4 w-4 text-acid" stroke-width="1.75"></i>
+      </span>
+      <span class="font-display text-sm font-semibold tracking-[0.2em] text-white">WARRANTYVAULT</span>
+    </a>
+
+    <div class="hidden items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] backdrop-blur-md md:flex" id="navLinks">
+      <a href="#products" class="rounded-full px-4 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-white/70 transition-all duration-200 hover:bg-white/10 hover:text-white">Vault</a>
+      <a href="#lineup" class="rounded-full px-4 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-white/70 transition-all duration-200 hover:bg-white/10 hover:text-white">Modules</a>
+      <a href="#gallery" class="rounded-full px-4 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-white/70 transition-all duration-200 hover:bg-white/10 hover:text-white">Receipt AI</a>
+      <a href="#tech" class="rounded-full px-4 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-white/70 transition-all duration-200 hover:bg-white/10 hover:text-white">Statutory</a>
+      <a href="#faq" class="rounded-full px-4 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-white/70 transition-all duration-200 hover:bg-white/10 hover:text-white">FAQ</a>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <div id="nav-user-container"></div>
+      <button type="button" data-magnetic="" data-cursor="Demo" onclick="openWarrantyApp()" class="btn-open-demo nav-cta hidden items-center gap-2.5 overflow-hidden rounded-full bg-white px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink transition-all duration-300 hover:bg-acid hover:scale-105 hover:shadow-[0_0_24px_rgba(200,255,61,0.5)] sm:inline-flex cursor-pointer">
+        <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span class="btn-flip relative block"><span class="block">Try Live Demo</span></span>
+        <i data-lucide="arrow-up-right" class="h-3.5 w-3.5" stroke-width="2"></i>
+      </button>
+      <button id="menuButton" type="button" class="nav-ink grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-white/5 text-white backdrop-blur-md md:hidden" aria-label="Open menu" aria-expanded="false">
+        <i data-lucide="menu" class="h-5 w-5" stroke-width="1.5"></i>
+      </button>
+    </div>
+  </nav>
+
+  <div id="mobileMenu" class="pointer-events-none mx-5 hidden rounded-2xl border border-white/15 bg-ink/95 p-5 text-white shadow-2xl backdrop-blur md:hidden">
+    <div class="flex flex-col gap-1">
+      <a href="#products" class="rounded-xl px-4 py-3 text-sm hover:bg-white/10">Vault</a>
+      <a href="#lineup" class="rounded-xl px-4 py-3 text-sm hover:bg-white/10">Modules</a>
+      <a href="#gallery" class="rounded-xl px-4 py-3 text-sm hover:bg-white/10">Receipt AI</a>
+      <a href="#tech" class="rounded-xl px-4 py-3 text-sm hover:bg-white/10">Statutory</a>
+      <a href="#faq" class="rounded-xl px-4 py-3 text-sm hover:bg-white/10">FAQ</a>
+      <button onclick="openWarrantyApp()" class="mt-3 rounded-xl bg-acid px-4 py-3 text-center text-sm font-semibold text-ink">Try Live Demo</button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============ 01 · HERO ============ -->
+  <section id="hero" class="relative h-[100svh] overflow-hidden bg-ink">
+    <div class="hero-media absolute inset-0 will-change-transform">
+      <img src="assets/hero_device.jpg" alt="WarrantyVault Hardware Protection" id="heroImg" class="absolute inset-0 h-[112%] w-full object-cover">
+    </div>
+    <div class="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-black/10"></div>
+    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30"></div>
+    <div id="heroVeil" class="pointer-events-none absolute inset-0 bg-ink opacity-0"></div>
+
+    <div class="relative mx-auto flex h-full max-w-7xl flex-col justify-center px-5 pt-40 pb-16 sm:px-8 sm:pt-44 lg:px-10 lg:pt-36 lg:pb-12">
+      <div id="heroCopy" class="max-w-2xl text-white">
+        <p class="mb-5 flex items-center gap-3 font-display text-[11px] font-medium uppercase tracking-[0.28em] text-acid" data-hero-el="">
+          <span class="h-px w-10 origin-left bg-acid" id="heroRule"></span>
+          AI Proof-of-Purchase &amp; Statutory RMA Claims
+        </p>
+        
+        <h1 class="font-display max-w-2xl text-4xl font-medium leading-[1.05] tracking-[-0.03em] sm:text-5xl lg:text-[4.2rem]" data-split="lines">
+          Stop throwing away broken electronics that are still under warranty.
+        </h1>
+        <p class="mt-6 max-w-lg text-sm sm:text-base leading-relaxed text-white/70" data-hero-el="">
+          Thermal store receipts fade. Boxes get thrown away. Retailers say "30 days is up." WarrantyVault extracts proof-of-purchase data, tracks countdown timers to the second, and generates certified RMA replacement demand letters citing statutory consumer protection laws.
+        </p>
+        
+        <div class="mt-8 flex flex-wrap items-center gap-3" data-hero-el="">
+          <button type="button" onclick="openWarrantyApp()" class="btn-open-demo group inline-flex items-center gap-2.5 rounded-full bg-white px-7 py-3.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink transition-all hover:bg-acid hover:scale-105 hover:shadow-[0_0_30px_rgba(200,255,61,0.5)] cursor-pointer">
+            <span>🚀 Launch Live Demo</span>
+            <i data-lucide="arrow-right" class="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" stroke-width="2"></i>
+          </button>
+          <a href="#products" data-magnetic="" data-cursor="Vault" class="group inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 py-3.5 text-[11px] font-medium uppercase tracking-[0.16em] text-white backdrop-blur transition-colors hover:bg-white hover:text-ink">
+            Explore Hardware Vault
+            <i data-lucide="shield" class="h-4 w-4 transition-transform duration-500 group-hover:scale-110" stroke-width="1.5"></i>
+          </a>
+          <a href="#tech" data-magnetic="" data-cursor="Legal" class="group inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 py-3.5 text-[11px] font-medium uppercase tracking-[0.16em] text-white/80 backdrop-blur transition-colors hover:bg-white hover:text-ink">
+            Statutory Shield Laws
+            <i data-lucide="book-open" class="h-4 w-4" stroke-width="1.5"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- corner meta -->
+    <div class="pointer-events-none absolute bottom-7 left-5 hidden font-display text-[10px] uppercase tracking-[0.28em] text-white/40 sm:left-8 lg:left-10 lg:block" data-hero-el="">
+      WARRANTYVAULT · STATUTORY SHIELD · UCC § 2-314
+    </div>
+    <div class="absolute bottom-7 right-5 hidden items-center gap-3 text-white/55 sm:right-8 lg:right-10 lg:flex" data-hero-el="">
+      <span class="font-display text-[10px] uppercase tracking-[0.28em]">Scroll to explore</span>
+      <span class="relative grid h-9 w-9 place-items-center rounded-full border border-white/25">
+        <i data-lucide="arrow-down" class="h-3.5 w-3.5" id="scrollArrow" stroke-width="1.5"></i>
+      </span>
+    </div>
+  </section>
+
+  <!-- ============ 02 · SPEC TICKER ============ -->
+  <section class="relative z-10 overflow-hidden border-y border-neutral-200 bg-white py-5">
+    <div class="marquee edge-fade" data-marquee="" data-speed="-0.6">
+      <div class="flex items-center gap-10 pr-10 font-display text-[12px] uppercase tracking-[0.22em] text-neutral-400">
+        <span>Optical Thermal OCR</span><span class="text-acid">◆</span>
+        <span>Microsecond Countdown Vault</span><span class="text-acid">◆</span>
+        <span>Magnuson-Moss 15 U.S.C. § 2301</span><span class="text-acid">◆</span>
+        <span>UCC § 2-314 Merchantability</span><span class="text-acid">◆</span>
+        <span>EU Directive 2019/771</span><span class="text-acid">◆</span>
+        <span>UK Consumer Rights Act 2015</span><span class="text-acid">◆</span>
+        <span>1-Click Formal RMA Demands</span><span class="text-acid">◆</span>
+        <span>Lossless Digital Receipts</span><span class="text-acid">◆</span>
+      </div>
+      <div class="flex items-center gap-10 pr-10 font-display text-[12px] uppercase tracking-[0.22em] text-neutral-400" aria-hidden="true">
+        <span>Optical Thermal OCR</span><span class="text-acid">◆</span>
+        <span>Microsecond Countdown Vault</span><span class="text-acid">◆</span>
+        <span>Magnuson-Moss 15 U.S.C. § 2301</span><span class="text-acid">◆</span>
+        <span>UCC § 2-314 Merchantability</span><span class="text-acid">◆</span>
+        <span>EU Directive 2019/771</span><span class="text-acid">◆</span>
+        <span>UK Consumer Rights Act 2015</span><span class="text-acid">◆</span>
+        <span>1-Click Formal RMA Demands</span><span class="text-acid">◆</span>
+        <span>Lossless Digital Receipts</span><span class="text-acid">◆</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 03 · MANIFESTO (scrubbed word reveal) ============ -->
+  <section id="manifesto" class="relative bg-white">
+    <div class="mx-auto max-w-6xl px-5 py-[18vh] sm:px-8 lg:px-10">
+      <p class="mb-10 font-display text-[11px] uppercase tracking-[0.28em] text-neutral-400" data-reveal="">(01) — The Broken Consumer System</p>
+      <p id="manifestoText" class="font-display text-[7.2vw] font-medium leading-[1.06] tracking-[-0.025em] text-neutral-900 sm:text-5xl lg:text-[3.6rem]">
+        Thermal store receipts fade in 90 days. Electronics are built to last years. Retailers profit $43 Billion every year when consumers lose proof of purchase. We built WarrantyVault so you never forfeit a hardware replacement you legally own.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 04 · NUMBERS ============ -->
+  <section id="products" class="border-t border-neutral-200 bg-white py-20 sm:py-28">
+    <div class="mx-auto grid max-w-7xl gap-14 px-5 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:px-10">
+      <div>
+        <p class="font-display text-[11px] uppercase tracking-[0.28em] text-neutral-400" data-reveal="">(02) — Quantified Protection</p>
+        <h2 class="font-display mt-5 max-w-lg text-4xl font-medium leading-[1.04] tracking-[-0.03em] sm:text-5xl" data-split="lines">
+          Enterprise-grade statutory protection for every device you own.
+        </h2>
+        <p class="mt-7 max-w-xl text-base leading-7 text-neutral-600" data-reveal="">
+          Every consumer gadget you purchase comes with statutory protections that retailers hide behind fine print. WarrantyVault extracts item SKU, serial numbers, and store tax IDs from crumpled paper, monitoring countdowns until the final second.
+        </p>
+        <p class="mt-4 max-w-xl text-base leading-7 text-neutral-600" data-reveal="">
+          When audio drivers crackle, logic boards fail, or heating elements burn out, our statutory engine drafts attorney-grade demand letters ready for manufacturer RMA submission citing federal consumer protection acts.
+        </p>
+
+        <div class="mt-12 grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4" data-stagger="">
+          <div class="border-t border-neutral-900/15 pt-4">
+            <p class="font-display text-4xl font-medium tracking-[-0.04em]"><span data-count="3800" data-prefix="$" data-suffix="K+">$0</span></p>
+            <p class="mt-2 font-display text-[10px] uppercase tracking-[0.18em] text-neutral-400">Claims Recovered</p>
+          </div>
+          <div class="border-t border-neutral-900/15 pt-4">
+            <p class="font-display text-4xl font-medium tracking-[-0.04em]"><span data-count="100" data-suffix="%">0%</span></p>
+            <p class="mt-2 font-display text-[10px] uppercase tracking-[0.18em] text-neutral-400">Certified Legal Citations</p>
+          </div>
+          <div class="border-t border-neutral-900/15 pt-4">
+            <p class="font-display text-4xl font-medium tracking-[-0.04em]"><span data-count="48" data-suffix="mo">0</span></p>
+            <p class="mt-2 font-display text-[10px] uppercase tracking-[0.18em] text-neutral-400">Statutory Shield Window</p>
+          </div>
+          <div class="border-t border-neutral-900/15 pt-4">
+            <p class="font-display text-4xl font-medium tracking-[-0.04em]"><span>0</span></p>
+            <p class="mt-2 font-display text-[10px] uppercase tracking-[0.18em] text-neutral-400">Faded Receipt Losses</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kit contents panel -->
+      <div class="relative min-h-[32rem] overflow-hidden rounded-[2rem] bg-neutral-50 p-6 sm:p-10" data-tilt="">
+        <div class="pointer-events-none absolute inset-0 opacity-60" id="kitOrbits">
+          <div class="absolute left-1/2 top-1/2 h-[26rem] w-[26rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-neutral-300"></div>
+          <div class="absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-neutral-200"></div>
+          <div class="absolute left-1/2 top-1/2 h-[18rem] w-[18rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-neutral-300"></div>
+        </div>
+        <div class="relative flex h-full flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="rounded-full border border-neutral-300 bg-white px-4 py-2 font-display text-[10px] uppercase tracking-[0.2em]">Covered Hardware Categories</span>
+            <i data-lucide="shield-check" class="h-6 w-6 text-emerald-600" stroke-width="1.5"></i>
+          </div>
+          <div class="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3" data-stagger="">
+            <div class="rounded-2xl border border-neutral-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+              <span class="mb-3 block h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+              <p class="text-sm font-medium">Audio Gear</p><p class="mt-1 text-xs text-neutral-500">Sony, Bose, AirPods</p>
+            </div>
+            <div class="rounded-2xl border border-neutral-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+              <span class="mb-3 block h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+              <p class="text-sm font-medium">Laptops & PCs</p><p class="mt-1 text-xs text-neutral-500">MacBook, XPS, ThinkPad</p>
+            </div>
+            <div class="rounded-2xl border border-neutral-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+              <span class="mb-3 block h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+              <p class="text-sm font-medium">Appliances</p><p class="mt-1 text-xs text-neutral-500">Ninja, Breville, Dyson</p>
+            </div>
+            <div class="rounded-2xl border border-neutral-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+              <span class="mb-3 block h-1.5 w-1.5 rounded-full bg-blue-500"></span>
+              <p class="text-sm font-medium">Displays & TVs</p><p class="mt-1 text-xs text-neutral-500">OLED, Studio Displays</p>
+            </div>
+            <div class="rounded-2xl border border-neutral-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+              <span class="mb-3 block h-1.5 w-1.5 rounded-full bg-blue-500"></span>
+              <p class="text-sm font-medium">Consoles & GPUs</p><p class="mt-1 text-xs text-neutral-500">PS5, RTX 4090, Switch</p>
+            </div>
+            <div class="rounded-2xl border border-neutral-200 bg-white/90 p-4 shadow-sm backdrop-blur">
+              <span class="mb-3 block h-1.5 w-1.5 rounded-full bg-blue-500"></span>
+              <p class="text-sm font-medium">Smart Mobile</p><p class="mt-1 text-xs text-neutral-500">iPhone, Galaxy, Pixel</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 05 · LINEUP (stacking cards) ============ -->
+  <section id="lineup" class="relative bg-neutral-50 pb-[10vh] pt-20 sm:pt-28">
+    <div class="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
+      <p class="font-display text-[11px] uppercase tracking-[0.28em] text-neutral-400" data-reveal="">(03) — Core Engine Modules</p>
+      <div class="mt-5 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+        <h2 class="font-display max-w-3xl text-4xl font-medium leading-[1.04] tracking-[-0.03em] sm:text-5xl" data-split="lines">
+          Three pillars. Complete hardware protection.
+        </h2>
+        <p class="max-w-sm text-base leading-7 text-neutral-600" data-reveal="">
+          From optical receipt ingestion to microsecond expiry countdowns and attorney-grade RMA demand letters — every phase of hardware warranty enforcement is automated.
+        </p>
+      </div>
+    </div>
+
+    <div class="mx-auto mt-16 max-w-7xl px-5 sm:px-8 lg:px-10" data-stack="">
+      <article class="stack-card sticky top-[12vh] mb-6" data-stack-card="">
+        <div class="group grid overflow-hidden rounded-[2rem] border border-neutral-200 bg-white lg:grid-cols-[1.3fr_0.7fr]">
+          <div class="relative overflow-hidden">
+            <img data-parallax-img="" src="assets/receipt_scan.jpg" alt="WarrantyVault Optical Receipt Ingestion Scanner" class="h-80 w-full scale-110 object-cover transition-transform duration-[1.2s] ease-out group-hover:scale-[1.16] lg:h-[30rem]">
+            <span class="absolute left-6 top-6 rounded-full bg-black/45 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.2em] text-white backdrop-blur">01</span>
+          </div>
+          <div class="flex min-h-80 flex-col justify-between p-7 sm:p-10">
+            <div class="flex items-center justify-between border-b border-neutral-200 pb-5">
+              <span class="font-display text-[10px] uppercase tracking-[0.2em] text-emerald-600 font-semibold">Proof-of-Purchase Restoration</span>
+              <span class="font-display text-sm tabular-nums text-neutral-500">Sub-Second OCR</span>
+            </div>
+            <div class="py-10">
+              <h3 class="font-display text-2xl font-medium tracking-[-0.02em]">Optical Receipt Ingestion Engine</h3>
+              <p class="mt-4 text-base leading-7 text-neutral-600">
+                Drop faded thermal slips, crumpled store invoices, or PDF receipts. High-contrast edge detection and text extraction parse merchant name, purchase timestamp, serial number, and exact hardware warranty tiers automatically.
+              </p>
+            </div>
+            <a href="#tech" data-cursor="Open" class="link-underline inline-flex w-fit items-center gap-2 text-sm font-medium">
+              Test Receipt Scanner
+              <i data-lucide="arrow-up-right" class="h-4 w-4" stroke-width="1.5"></i>
+            </a>
+          </div>
+        </div>
+      </article>
+
+      <article class="stack-card sticky top-[14vh] mb-6" data-stack-card="">
+        <div class="group grid overflow-hidden rounded-[2rem] border border-neutral-200 bg-white lg:grid-cols-[1.3fr_0.7fr]">
+          <div class="relative overflow-hidden">
+            <img data-parallax-img="" src="assets/hardware_vault.jpg" alt="WarrantyVault Real-Time Hardware Countdown Vault" class="h-80 w-full scale-110 object-cover transition-transform duration-[1.2s] ease-out group-hover:scale-[1.16] lg:h-[30rem]">
+            <span class="absolute left-6 top-6 rounded-full bg-black/45 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.2em] text-white backdrop-blur">02</span>
+          </div>
+          <div class="flex min-h-80 flex-col justify-between p-7 sm:p-10">
+            <div class="flex items-center justify-between border-b border-neutral-200 pb-5">
+              <span class="font-display text-[10px] uppercase tracking-[0.2em] text-blue-600 font-semibold">Microsecond Telemetry</span>
+              <span class="font-display text-sm tabular-nums text-neutral-500">Active HUD</span>
+            </div>
+            <div class="py-10">
+              <h3 class="font-display text-2xl font-medium tracking-[-0.02em]">Dynamic Hardware Countdown Vault</h3>
+              <p class="mt-4 text-base leading-7 text-neutral-600">
+                Visual countdown timers tick down every second across your entire tech inventory. Get proactive alerts 30, 14, and 3 days before standard coverage lapses, alerting you to inspect and claim before the cutoff window.
+              </p>
+            </div>
+            <a href="#tech" data-cursor="Open" class="link-underline inline-flex w-fit items-center gap-2 text-sm font-medium">
+              View Countdown Engine
+              <i data-lucide="arrow-up-right" class="h-4 w-4" stroke-width="1.5"></i>
+            </a>
+          </div>
+        </div>
+      </article>
+
+      <article class="stack-card sticky top-[16vh]" data-stack-card="">
+        <div class="group grid overflow-hidden rounded-[2rem] border border-neutral-800 bg-ink text-white lg:grid-cols-[1.3fr_0.7fr]">
+          <div class="relative overflow-hidden">
+            <img data-parallax-img="" src="https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=1600&q=85" alt="Certified Statutory RMA Replacement Demand Letter Shield" class="h-80 w-full scale-110 object-cover transition-transform duration-[1.2s] ease-out group-hover:scale-[1.16] lg:h-[30rem]">
+            <span class="absolute left-6 top-6 rounded-full bg-acid px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.2em] text-ink">03 · Best value</span>
+          </div>
+          <div class="flex min-h-80 flex-col justify-between p-7 sm:p-10">
+            <div class="flex items-center justify-between border-b border-white/15 pb-5">
+              <span class="font-display text-[10px] uppercase tracking-[0.2em] text-[#C8FF3D] font-semibold">Federal & Statutory Shield</span>
+              <span class="font-display text-sm tabular-nums text-white/60">1-Click Legal RMA</span>
+            </div>
+            <div class="py-10">
+              <h3 class="font-display text-2xl font-medium tracking-[-0.02em]">Certified Statutory RMA Demand Generator</h3>
+              <p class="mt-4 text-base leading-7 text-white/60">
+                When hardware suffers premature failure, retailers claim the 30-day window is closed. WarrantyVault generates formal legal demand letters citing Magnuson-Moss 15 U.S.C. § 2301 and EU Directive 2019/771, compelling manufacturer replacements.
+              </p>
+            </div>
+            <button onclick="openWarrantyApp()" class="inline-flex w-fit items-center gap-2 rounded-full bg-acid px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink transition hover:bg-white cursor-pointer">
+              Launch Live RMA Generator
+              <i data-lucide="arrow-right" class="h-4 w-4" stroke-width="2"></i>
+            </button>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============ 06 · HORIZONTAL GALLERY (pinned) ============ -->
+  <section id="gallery" class="relative overflow-hidden bg-ink text-white">
+    <div class="mx-auto max-w-3xl px-5 pt-24 text-center sm:px-8 sm:pt-32">
+      <p class="font-display text-[11px] uppercase tracking-[0.28em] text-white/40" data-reveal="">(04) — Proof In Action</p>
+      <h2 class="font-display mt-5 text-4xl font-medium tracking-[-0.03em] sm:text-5xl" data-split="lines">
+        Turn crumpled store receipts into approved hardware replacements.
+      </h2>
+      <p class="mt-6 text-base leading-7 text-white/55" data-reveal="">
+        From Best Buy and Target store receipts to Apple invoices and Amazon online purchases — WarrantyVault handles the entire proof-of-purchase lifecycle.
+      </p>
+      <div class="mt-9 flex flex-wrap justify-center gap-2.5" data-stagger="">
+        <span class="rounded-full border border-white/20 px-4 py-2 font-display text-[10px] uppercase tracking-[0.18em] text-white/70">Optical AI Extraction</span>
+        <span class="rounded-full border border-white/20 px-4 py-2 font-display text-[10px] uppercase tracking-[0.18em] text-white/70">Serial Number Isolation</span>
+        <span class="rounded-full border border-white/20 px-4 py-2 font-display text-[10px] uppercase tracking-[0.18em] text-white/70">Merchant Tax ID Detection</span>
+        <span class="rounded-full border border-white/20 px-4 py-2 font-display text-[10px] uppercase tracking-[0.18em] text-white/70">Statutory Act Cross-Reference</span>
+      </div>
+    </div>
+
+    <div id="hScroll" class="relative mt-16 h-[100svh] pb-0">
+      <div class="flex h-full items-center overflow-hidden">
+        <div id="hTrack" class="flex w-max items-center gap-5 px-5 sm:gap-7 sm:px-[12vw]">
+          <figure class="relative w-[78vw] overflow-hidden rounded-2xl sm:w-[34rem]">
+            <img data-parallax-img="" src="https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&w=1200&q=85" alt="Sony WH-1000XM5 Headphones Proof" class="h-[46vh] w-full scale-110 object-cover sm:h-[26rem]">
+            <figcaption class="absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-black/70 to-transparent p-5">
+              <span class="font-display text-sm">Audio Gear · Sony WH-1000XM5</span>
+              <span class="font-display text-[10px] uppercase tracking-[0.2em] text-white/60">01</span>
+            </figcaption>
+          </figure>
+          <figure class="relative w-[78vw] overflow-hidden rounded-2xl sm:w-[26rem]">
+            <img data-parallax-img="" src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=1200&q=85" alt="Apple MacBook Pro Workstation Invoice" class="h-[56vh] w-full scale-110 object-cover sm:h-[32rem]">
+            <figcaption class="absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-black/70 to-transparent p-5">
+              <span class="font-display text-sm">Laptop Workstation · MacBook Pro M3</span>
+              <span class="font-display text-[10px] uppercase tracking-[0.2em] text-white/60">02</span>
+            </figcaption>
+          </figure>
+          <figure class="relative w-[78vw] overflow-hidden rounded-2xl sm:w-[34rem]">
+            <img data-parallax-img="" src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=1200&q=85" alt="Ninja DualZone Smart Air Fryer Receipt" class="h-[46vh] w-full scale-110 object-cover sm:h-[26rem]">
+            <figcaption class="absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-black/70 to-transparent p-5">
+              <span class="font-display text-sm">Kitchen Appliance · Ninja DualZone</span>
+              <span class="font-display text-[10px] uppercase tracking-[0.2em] text-white/60">03</span>
+            </figcaption>
+          </figure>
+          <figure class="relative w-[78vw] overflow-hidden rounded-2xl sm:w-[26rem]">
+            <img data-parallax-img="" src="https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=1200&q=85" alt="Gaming OLED Panel Hardware Display" class="h-[56vh] w-full scale-110 object-cover sm:h-[32rem]">
+            <figcaption class="absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-black/70 to-transparent p-5">
+              <span class="font-display text-sm">Display Panel · 4K OLED Gaming Monitor</span>
+              <span class="font-display text-[10px] uppercase tracking-[0.2em] text-white/60">04</span>
+            </figcaption>
+          </figure>
+          <div class="flex w-[70vw] shrink-0 flex-col justify-center gap-5 pr-5 sm:w-[24rem]">
+            <p class="font-display text-3xl font-medium leading-[1.1] tracking-[-0.03em] sm:text-4xl">Every receipt, secured until the final second.</p>
+            <a href="#stories" data-magnetic="" data-cursor="More" class="inline-flex w-fit items-center gap-2 rounded-full border border-white/25 px-5 py-3 font-display text-[10px] uppercase tracking-[0.18em] transition hover:bg-white hover:text-ink">
+              See Recovered Claims <i data-lucide="arrow-right" class="h-4 w-4" stroke-width="1.5"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="pointer-events-none absolute inset-x-5 bottom-8 mx-auto hidden max-w-7xl items-center gap-4 sm:flex sm:px-3">
+        <span class="font-display text-[10px] uppercase tracking-[0.22em] text-white/40">Drag / scroll</span>
+        <span class="relative h-px flex-1 bg-white/15"><span id="hBar" class="absolute inset-y-0 left-0 block w-0 bg-acid"></span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 07 · APERTURE (pinned scrub) ============ -->
+  <section id="tech" class="relative bg-ink text-white">
+    <div id="apPin" class="relative h-[100svh] overflow-hidden">
+      <!-- backdrop revealed through the iris -->
+      <img id="apBack" src="https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/0b747a96-4f78-4e4e-8152-d26201955a6b_3840w.png" alt="" aria-hidden="true" class="absolute inset-0 h-full w-full scale-125 object-cover opacity-70">
+      <div class="absolute inset-0 bg-ink/45"></div>
+
+      <div class="absolute inset-0 grid place-items-center">
+        <div id="apStage" class="relative h-[86vmin] w-[86vmin] max-h-[92vw] max-w-[92vw]">
+          <svg id="apSvg" viewBox="-120 -120 240 240" class="h-full w-full overflow-visible" aria-hidden="true">
+            <defs>
+              <!-- the iris opening; regenerated every frame -->
+              <clipPath id="apClip"><path id="apClipPath" d="M0 0Z"></path></clipPath>
+
+              <!-- brushed-metal blade face -->
+              <linearGradient id="gBlade" x1="0" y1="0" x2="0.65" y2="1">
+                <stop offset="0%" stop-color="#3a3d43"></stop>
+                <stop offset="28%" stop-color="#17191d"></stop>
+                <stop offset="52%" stop-color="#25282d"></stop>
+                <stop offset="74%" stop-color="#101216"></stop>
+                <stop offset="100%" stop-color="#33363c"></stop>
+              </linearGradient>
+              <!-- light catching the machined inner edge of the blades -->
+              <linearGradient id="gEdge" x1="0" y1="0" x2="0.4" y2="1">
+                <stop offset="0%" stop-color="rgba(255,255,255,.85)"></stop>
+                <stop offset="40%" stop-color="rgba(255,255,255,.22)"></stop>
+                <stop offset="100%" stop-color="rgba(255,255,255,.55)"></stop>
+              </linearGradient>
+              <linearGradient id="gBarrel" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#4a4e55"></stop>
+                <stop offset="45%" stop-color="#15171a"></stop>
+                <stop offset="100%" stop-color="#3c4046"></stop>
+              </linearGradient>
+              <!-- keeps the centred copy legible over the opened frame -->
+              <radialGradient id="gScrim">
+                <stop offset="0%" stop-color="rgba(8,9,10,.80)"></stop>
+                <stop offset="55%" stop-color="rgba(8,9,10,.34)"></stop>
+                <stop offset="100%" stop-color="rgba(8,9,10,0)"></stop>
+              </radialGradient>
+              <!-- glass tint + falloff toward the barrel wall -->
+              <radialGradient id="gWell">
+                <stop offset="60%" stop-color="rgba(0,0,0,0)"></stop>
+                <stop offset="100%" stop-color="rgba(0,0,0,.85)"></stop>
+              </radialGradient>
+              <filter id="fGlint" x="-60%" y="-60%" width="220%" height="220%">
+                <feGaussianBlur stdDeviation="1.6"></feGaussianBlur>
+              </filter>
+              <filter id="fDof" x="-15%" y="-15%" width="130%" height="130%">
+                <feGaussianBlur id="apDof" stdDeviation="0"></feGaussianBlur>
+              </filter>
+            </defs>
+
+            <!-- 1 · what the lens sees, visible only through the opening -->
+            <g clip-path="url(#apClip)">
+              <g filter="url(#fDof)">
+                <image id="apPhoto" x="-96" y="-96" width="192" height="192" preserveAspectRatio="xMidYMid slice"></image>
+              </g>
+              <circle r="96" fill="url(#gWell)"></circle>
+              <circle r="96" fill="url(#gScrim)"></circle>
+            </g>
+
+            <!-- 2 · blades: a disc with the opening punched out (evenodd) -->
+            <path id="apBladeRing" fill="url(#gBlade)" fill-rule="evenodd"></path>
+            <!-- 3 · seams where one blade overlaps the next -->
+            <g id="apSeams" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="0.5"></g>
+            <!-- 4 · machined highlight on the opening edge -->
+            <path id="apEdge" fill="none" stroke="url(#gEdge)" stroke-width="0.7"></path>
+            <!-- 5 · specular glints at the vertices, wide open only -->
+            <g id="apGlints" filter="url(#fGlint)"></g>
+
+            <!-- 6 · barrel -->
+            <circle r="92.6" fill="none" stroke="url(#gBarrel)" stroke-width="5"></circle>
+            <circle r="95.4" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="0.6"></circle>
+            <circle r="89.6" fill="none" stroke="rgba(0,0,0,.85)" stroke-width="1.2"></circle>
+            <g id="apKnurl" stroke="rgba(255,255,255,.16)" stroke-width="0.55"></g>
+
+            <!-- 7 · engraved f-stop scale that turns with the iris -->
+            <g id="apScale" fill="rgba(255,255,255,.42)" font-size="5.2" font-family="Inter Tight, Inter, sans-serif" text-anchor="middle" letter-spacing="0.5"></g>
+            <path d="M0 -100.5 L2.6 -105.5 L-2.6 -105.5 Z" fill="#C8FF3D"></path>
+          </svg>
+        </div>
+      </div>
+
+      <!-- centered copy that fades through the sequence -->
+      <div class="pointer-events-none absolute inset-0 grid place-items-center px-6 text-center">
+        <div class="max-w-xl">
+          <p id="apLabel" class="font-display text-[11px] uppercase tracking-[0.28em] text-acid">(05) — Legal Protection Architecture</p>
+          <h2 id="apTitle" class="font-display mt-5 text-4xl font-medium leading-[1.04] tracking-[-0.03em] sm:text-6xl">Statutory rights engineered into code.</h2>
+          <p id="apCopy" class="mx-auto mt-5 max-w-md text-base leading-7 text-white/60">
+            Retail store return policies do not override statutory law. We encode federal and state consumer protection acts directly into every RMA claim letter.
+          </p>
+        </div>
+      </div>
+
+      <!-- floating spec chips -->
+      <div class="pointer-events-none absolute inset-0">
+        <div class="ap-chip absolute left-[6%] top-[18%] rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-xs backdrop-blur sm:left-[12%]">
+          <span class="flex items-center gap-2"><i data-lucide="shield" class="h-4 w-4 text-acid" stroke-width="1.5"></i> Magnuson-Moss 15 U.S.C. § 2301</span>
+        </div>
+        <div class="ap-chip absolute right-[6%] top-[26%] rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-xs backdrop-blur sm:right-[12%]">
+          <span class="flex items-center gap-2"><i data-lucide="scale" class="h-4 w-4 text-acid" stroke-width="1.5"></i> UCC § 2-314 Merchantability</span>
+        </div>
+        <div class="ap-chip absolute bottom-[24%] left-[6%] rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-xs backdrop-blur sm:left-[14%]">
+          <span class="flex items-center gap-2"><i data-lucide="file-check-2" class="h-4 w-4 text-acid" stroke-width="1.5"></i> EU Directive 2019/771</span>
+        </div>
+        <div class="ap-chip absolute bottom-[18%] right-[6%] rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-xs backdrop-blur sm:right-[14%]">
+          <span class="flex items-center gap-2"><i data-lucide="award" class="h-4 w-4 text-acid" stroke-width="1.5"></i> UK Consumer Rights 2015</span>
+        </div>
+      </div>
+
+      <div class="pointer-events-none absolute bottom-8 left-1/2 -translate-x-1/2 font-display text-[10px] uppercase tracking-[0.28em] text-white/35">
+        <span id="apStop">f/11</span> · <span id="apPct">0</span>% open
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 08 · CREATOR STORIES ============ -->
+  <section id="stories" class="overflow-hidden bg-white py-20 sm:py-28">
+    <div class="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
+      <p class="font-display text-[11px] uppercase tracking-[0.28em] text-neutral-400" data-type="">(06) — Real Recovered Claims</p>
+      <div class="mt-5 flex flex-col justify-between gap-6 md:flex-row md:items-end">
+        <h2 class="font-display max-w-3xl text-4xl font-medium leading-[1.04] tracking-[-0.03em] sm:text-5xl" data-type="" data-type-delay="0.45">
+          Over $3,800,000 in hardware claims recovered across consumer electronics.
+        </h2>
+        <a href="#support" data-cursor="Join" class="link-underline inline-flex w-fit items-center gap-2 text-sm font-medium">
+          Join the community <i data-lucide="arrow-up-right" class="h-4 w-4" stroke-width="1.5"></i>
+        </a>
+      </div>
+
+      <div class="mt-16 grid gap-x-8 gap-y-16 md:grid-cols-2">
+        <article class="group" data-story="">
+          <div class="overflow-hidden rounded-[2rem]" data-clip="">
+            <img data-parallax-img="" src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1200&q=85" alt="Sony WH-1000XM5 Headphones" class="aspect-[4/3] w-full scale-110 object-cover transition-transform duration-[1.2s] group-hover:scale-[1.16]">
+          </div>
+          <div class="mt-6 flex items-start justify-between gap-5">
+            <div>
+              <p data-type="" class="font-display text-[10px] uppercase tracking-[0.2em] text-neutral-400">Audio Gear · Best Buy Claim</p>
+              <h3 data-split="lines" class="font-display mt-2 text-2xl font-medium tracking-[-0.02em]">Sony WH-1000XM5 Hinge Failure</h3>
+              <p class="mt-3 max-w-md text-base leading-7 text-neutral-600">
+                Headband swivel snapped at month 11. Best Buy store clerk claimed standard warranty was manufacturer-only. WarrantyVault's demand letter cited statutory fit-for-purpose rules; Best Buy issued a brand-new boxed replacement in 48 hours. Saved $399.
+              </p>
+            </div>
+            <span data-num="" class="font-display text-5xl font-light text-neutral-200">01</span>
+          </div>
+        </article>
+
+        <article class="group md:mt-24" data-story="">
+          <div class="overflow-hidden rounded-[3.5rem] rounded-bl-2xl" data-clip="">
+            <img data-parallax-img="" src="https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=1300&q=90" alt="Creator recording a street interview" class="aspect-[4/3] w-full scale-110 object-cover transition-transform duration-[1.2s] group-hover:scale-[1.16]">
+          </div>
+          <div class="mt-6 flex items-start justify-between gap-5">
+            <div>
+              <p data-type="" class="font-display text-[10px] uppercase tracking-[0.2em] text-neutral-400">Laptop Workstation · Apple Store Claim</p>
+              <h3 data-split="lines" class="font-display mt-2 text-2xl font-medium tracking-[-0.02em]">MacBook Pro M3 Logic Board Glitch</h3>
+              <p class="mt-3 max-w-md text-base leading-7 text-neutral-600">
+                Display flickering occurred 75 days after purchase. Retailer argued the 30-day store return window had expired. Our citation of statutory implied merchantability overturned a $799 out-of-warranty diagnostic quote with zero out-of-pocket cost. Saved $1,999.
+              </p>
+            </div>
+            <span data-num="" class="font-display text-5xl font-light text-neutral-200">02</span>
+          </div>
+        </article>
+
+        <article class="group" data-story="">
+          <div class="overflow-hidden rounded-[2rem]" data-clip="">
+            <img data-parallax-img="" src="https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format&fit=crop&w=1300&q=90" alt="Studio tutorial being filmed" class="aspect-[4/3] w-full scale-110 object-cover transition-transform duration-[1.2s] group-hover:scale-[1.16]">
+          </div>
+          <div class="mt-6 flex items-start justify-between gap-5">
+            <div>
+              <p data-type="" class="font-display text-[10px] uppercase tracking-[0.2em] text-neutral-400">Kitchen Appliance · Target Claim</p>
+              <h3 data-split="lines" class="font-display mt-2 text-2xl font-medium tracking-[-0.02em]">Ninja DualZone Heating Coil</h3>
+              <p class="mt-3 max-w-md text-base leading-7 text-neutral-600">
+                Left heating coil failed 13 months after purchase (1 month past 1-year limited warranty). Claim letter cited UCC § 2-314 4-year statute of limitations for latent manufacturing defects. Target issued full store credit. Saved $219.
+              </p>
+            </div>
+            <span data-num="" class="font-display text-5xl font-light text-neutral-200">03</span>
+          </div>
+        </article>
+
+        <article class="group md:mt-24" data-story="">
+          <div class="overflow-hidden rounded-[3.5rem] rounded-tr-2xl" data-clip="">
+            <img data-parallax-img="" src="https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1300&q=90" alt="Night city creator shoot" class="aspect-[4/3] w-full scale-110 object-cover transition-transform duration-[1.2s] group-hover:scale-[1.16]">
+          </div>
+          <div class="mt-6 flex items-start justify-between gap-5">
+            <div>
+              <p data-type="" class="font-display text-[10px] uppercase tracking-[0.2em] text-neutral-400">Display Panel · Online Retailer Claim</p>
+              <h3 data-split="lines" class="font-display mt-2 text-2xl font-medium tracking-[-0.02em]">Samsung OLED Sub-Pixel Failure</h3>
+              <p class="mt-3 max-w-md text-base leading-7 text-neutral-600">
+                Customer service initially dismissed vertical line burn-in as wear-and-tear. Optical invoice proof and formal statutory letter compelled manufacturer repair authorization within 3 business days. Saved $1,299.
+              </p>
+            </div>
+            <span data-num="" class="font-display text-5xl font-light text-neutral-200">04</span>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 09 · REVIEWS (velocity marquee) ============ -->
+  <section id="reviews" class="overflow-hidden border-y border-neutral-200 bg-neutral-50 py-20 sm:py-28">
+    <div class="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
+      <p class="font-display text-[11px] uppercase tracking-[0.28em] text-neutral-400" data-reveal="">(07) — Consumer Reviews</p>
+      <h2 class="font-display mt-5 max-w-3xl text-4xl font-medium leading-[1.04] tracking-[-0.03em] sm:text-5xl" data-split="lines">
+        Loved by hardware enthusiasts, students, and smart consumers.
+      </h2>
+      <p class="mt-5 max-w-xl text-base leading-7 text-neutral-500" data-reveal="">
+        Real stories from people who refused to throw away broken electronics and recovered thousands in warranty replacements.
+      </p>
+    </div>
+
+    <div class="mt-14 space-y-5">
+      <div class="marquee edge-fade" data-marquee="" data-speed="-0.5" data-velocity="">
+        <div class="flex gap-5 pr-5">
+          <blockquote class="flex w-[86vw] flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-7 shadow-sm sm:w-[26rem]">
+            <p class="text-base leading-7 text-neutral-700">“Best Buy told me my $380 Sony XM5 headphones were past the 30-day store return. WarrantyVault flagged 11 months of manufacturer coverage, extracted my faded thermal receipt, and generated a formal claim. Sony shipped a new replacement in 4 days.”</p>
+            <footer class="mt-8 flex items-center gap-3 border-t border-neutral-100 pt-5">
+              <div class="grid h-10 w-10 place-items-center rounded-full bg-emerald-100 text-sm font-medium text-emerald-800">MV</div>
+              <div><p class="text-sm font-medium">Marcus Vance</p><p class="font-display text-[10px] uppercase tracking-[0.18em] text-neutral-400">Systems Admin · CloudScale Labs</p></div>
+            </footer>
+          </blockquote>
+          <blockquote class="flex w-[86vw] flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-7 shadow-sm sm:w-[26rem]">
+            <p class="text-base leading-7 text-neutral-700">“When my MacBook Pro logic board died right after AppleCare, WarrantyVault cited EU Directive 2019/771 on 2-year statutory conformity. Apple authorized a complimentary $680 tier-4 repair with zero pushback. This tool paid for itself tenfold.”</p>
+            <footer class="mt-8 flex items-center gap-3 border-t border-neutral-100 pt-5">
+              <div class="grid h-10 w-10 place-items-center rounded-full bg-blue-100 text-sm font-medium text-blue-800">ER</div>
+              <div><p class="text-sm font-medium">Elena Rostova</p><p class="font-display text-[10px] uppercase tracking-[0.18em] text-neutral-400">Motion Designer · Berlin</p></div>
+            </footer>
+          </blockquote>
+          <blockquote class="flex w-[86vw] flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-7 shadow-sm sm:w-[26rem]">
+            <p class="text-base leading-7 text-neutral-700">“My RTX 4080 developed severe memory artifacting after 14 months. The retailer claimed warranty wasn’t transferable, but WarrantyVault cited UCC § 2-314 implied merchantability. The manufacturer issued a full RMA replacement.”</p>
+            <footer class="mt-8 flex items-center gap-3 border-t border-neutral-100 pt-5">
+              <div class="grid h-10 w-10 place-items-center rounded-full bg-amber-100 text-sm font-medium text-amber-800">DC</div>
+              <div><p class="text-sm font-medium">David Chen</p><p class="font-display text-[10px] uppercase tracking-[0.18em] text-neutral-400">PC Hardware Enthusiast · Austin, TX</p></div>
+            </footer>
+          </blockquote>
+        </div>
+        <div class="flex gap-5 pr-5" aria-hidden="true">
+          <blockquote class="flex w-[86vw] flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-7 shadow-sm sm:w-[26rem]">
+            <p class="text-base leading-7 text-neutral-700">“Best Buy told me my $380 Sony XM5 headphones were past the 30-day store return. WarrantyVault flagged 11 months of manufacturer coverage, extracted my faded thermal receipt, and generated a formal claim. Sony shipped a new replacement in 4 days.”</p>
+            <footer class="mt-8 flex items-center gap-3 border-t border-neutral-100 pt-5">
+              <div class="grid h-10 w-10 place-items-center rounded-full bg-emerald-100 text-sm font-medium text-emerald-800">MV</div>
+              <div><p class="text-sm font-medium">Marcus Vance</p><p class="font-display text-[10px] uppercase tracking-[0.18em] text-neutral-400">Systems Admin · CloudScale Labs</p></div>
+            </footer>
+          </blockquote>
+          <blockquote class="flex w-[86vw] flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-7 shadow-sm sm:w-[26rem]">
+            <p class="text-base leading-7 text-neutral-700">“When my MacBook Pro logic board died right after AppleCare, WarrantyVault cited EU Directive 2019/771 on 2-year statutory conformity. Apple authorized a complimentary $680 tier-4 repair with zero pushback. This tool paid for itself tenfold.”</p>
+            <footer class="mt-8 flex items-center gap-3 border-t border-neutral-100 pt-5">
+              <div class="grid h-10 w-10 place-items-center rounded-full bg-blue-100 text-sm font-medium text-blue-800">ER</div>
+              <div><p class="text-sm font-medium">Elena Rostova</p><p class="font-display text-[10px] uppercase tracking-[0.18em] text-neutral-400">Motion Designer · Berlin</p></div>
+            </footer>
+          </blockquote>
+          <blockquote class="flex w-[86vw] flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-7 shadow-sm sm:w-[26rem]">
+            <p class="text-base leading-7 text-neutral-700">“My RTX 4080 developed severe memory artifacting after 14 months. The retailer claimed warranty wasn’t transferable, but WarrantyVault cited UCC § 2-314 implied merchantability. The manufacturer issued a full RMA replacement.”</p>
+            <footer class="mt-8 flex items-center gap-3 border-t border-neutral-100 pt-5">
+              <div class="grid h-10 w-10 place-items-center rounded-full bg-amber-100 text-sm font-medium text-amber-800">DC</div>
+              <div><p class="text-sm font-medium">David Chen</p><p class="font-display text-[10px] uppercase tracking-[0.18em] text-neutral-400">PC Hardware Enthusiast · Austin, TX</p></div>
+            </footer>
+          </blockquote>
+        </div>
+      </div>
+
+      <div class="marquee edge-fade" data-marquee="" data-speed="0.4" data-velocity="">
+        <div class="flex gap-5 pr-5">
+          <blockquote class="flex w-[86vw] flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-7 shadow-sm sm:w-[26rem]">
+            <p class="text-base leading-7 text-neutral-700">“Currys insisted my broken espresso machine only had a 1-year guarantee. WarrantyVault cited the UK Consumer Rights Act 2015 6-year statutory claim right. The store manager approved a full £749 replacement on the spot.”</p>
+            <footer class="mt-8 flex items-center gap-3 border-t border-neutral-100 pt-5">
+              <div class="grid h-10 w-10 place-items-center rounded-full bg-violet-100 text-sm font-medium text-violet-800">JT</div>
+              <div><p class="text-sm font-medium">Julian Thorne</p><p class="font-display text-[10px] uppercase tracking-[0.18em] text-neutral-400">Smart Home Tech · London, UK</p></div>
+            </footer>
+          </blockquote>
+          <blockquote class="flex w-[86vw] flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-7 shadow-sm sm:w-[26rem]">
+            <p class="text-base leading-7 text-neutral-700">“Our kitchen studio runs 8 appliances. Thermal receipts usually turn completely black or fade to blank paper within 3 months. The optical enhancement restored our faded Ninja Air Fryer receipt and saved us $180 on a warranty replacement.”</p>
+            <footer class="mt-8 flex items-center gap-3 border-t border-neutral-100 pt-5">
+              <div class="grid h-10 w-10 place-items-center rounded-full bg-cyan-100 text-sm font-medium text-cyan-800">SJ</div>
+              <div><p class="text-sm font-medium">Sarah Jenkins</p><p class="font-display text-[10px] uppercase tracking-[0.18em] text-neutral-400">Culinary Studio Director · Seattle, WA</p></div>
+            </footer>
+          </blockquote>
+          <blockquote class="flex w-[86vw] flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-7 shadow-sm sm:w-[26rem]">
+            <p class="text-base leading-7 text-neutral-700">“I manage over 30 audio interfaces, mics, and synthesizers. The live countdown ticker alerts me weeks before coverage expires so I never leave money on the table. We’ve recovered over $4,200 in free hardware replacements this year alone.”</p>
+            <footer class="mt-8 flex items-center gap-3 border-t border-neutral-100 pt-5">
+              <div class="grid h-10 w-10 place-items-center rounded-full bg-rose-100 text-sm font-medium text-rose-800">AM</div>
+              <div><p class="text-sm font-medium">Alexandre Moreau</p><p class="font-display text-[10px] uppercase tracking-[0.18em] text-neutral-400">Sound Studio Lead · Paris</p></div>
+            </footer>
+          </blockquote>
+        </div>
+        <div class="flex gap-5 pr-5" aria-hidden="true">
+          <blockquote class="flex w-[86vw] flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-7 shadow-sm sm:w-[26rem]">
+            <p class="text-base leading-7 text-neutral-700">“Currys insisted my broken espresso machine only had a 1-year guarantee. WarrantyVault cited the UK Consumer Rights Act 2015 6-year statutory claim right. The store manager approved a full £749 replacement on the spot.”</p>
+            <footer class="mt-8 flex items-center gap-3 border-t border-neutral-100 pt-5">
+              <div class="grid h-10 w-10 place-items-center rounded-full bg-violet-100 text-sm font-medium text-violet-800">JT</div>
+              <div><p class="text-sm font-medium">Julian Thorne</p><p class="font-display text-[10px] uppercase tracking-[0.18em] text-neutral-400">Smart Home Tech · London, UK</p></div>
+            </footer>
+          </blockquote>
+          <blockquote class="flex w-[86vw] flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-7 shadow-sm sm:w-[26rem]">
+            <p class="text-base leading-7 text-neutral-700">“Our kitchen studio runs 8 appliances. Thermal receipts usually turn completely black or fade to blank paper within 3 months. The optical enhancement restored our faded Ninja Air Fryer receipt and saved us $180 on a warranty replacement.”</p>
+            <footer class="mt-8 flex items-center gap-3 border-t border-neutral-100 pt-5">
+              <div class="grid h-10 w-10 place-items-center rounded-full bg-cyan-100 text-sm font-medium text-cyan-800">SJ</div>
+              <div><p class="text-sm font-medium">Sarah Jenkins</p><p class="font-display text-[10px] uppercase tracking-[0.18em] text-neutral-400">Culinary Studio Director · Seattle, WA</p></div>
+            </footer>
+          </blockquote>
+          <blockquote class="flex w-[86vw] flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-7 shadow-sm sm:w-[26rem]">
+            <p class="text-base leading-7 text-neutral-700">“I manage over 30 audio interfaces, mics, and synthesizers. The live countdown ticker alerts me weeks before coverage expires so I never leave money on the table. We’ve recovered over $4,200 in free hardware replacements this year alone.”</p>
+            <footer class="mt-8 flex items-center gap-3 border-t border-neutral-100 pt-5">
+              <div class="grid h-10 w-10 place-items-center rounded-full bg-rose-100 text-sm font-medium text-rose-800">AM</div>
+              <div><p class="text-sm font-medium">Alexandre Moreau</p><p class="font-display text-[10px] uppercase tracking-[0.18em] text-neutral-400">Sound Studio Lead · Paris</p></div>
+            </footer>
+          </blockquote>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 10 · FAQ ============ -->
+  <section id="faq" class="relative overflow-hidden bg-neutral-100 py-20 sm:py-28">
+    <div class="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
+      <div class="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
+        <div class="lg:sticky lg:top-28 lg:self-start">
+          <p class="font-display text-[11px] uppercase tracking-[0.28em] text-neutral-400" data-reveal="">(08) — Frequently Asked Questions</p>
+          <h2 class="font-display mt-5 max-w-xl text-4xl font-medium leading-[1.04] tracking-[-0.03em] sm:text-5xl" data-split="lines">
+            Everything you need to know about your warranty & statutory rights.
+          </h2>
+          <p class="mt-6 max-w-lg text-base leading-7 text-neutral-600" data-reveal="">
+            Legal shields, faded thermal receipts, countdown timers, and statutory replacement claims.
+          </p>
+          <a href="#support" data-magnetic="" data-cursor="Ask" class="mt-9 inline-flex items-center gap-2 rounded-full bg-acid px-6 py-3.5 text-[11px] font-medium uppercase tracking-[0.16em] text-ink transition hover:bg-ink hover:text-white" data-reveal="">
+            Ask us anything <i data-lucide="arrow-up-right" class="h-4 w-4" stroke-width="1.5"></i>
+          </a>
+        </div>
+
+        <div class="divide-y divide-neutral-300 border-y border-neutral-300" id="faqList">
+          <div class="faq-item is-open">
+            <button type="button" class="faq-head flex w-full cursor-pointer items-center justify-between gap-6 py-6 text-left sm:py-7" aria-expanded="true">
+              <span class="font-display text-lg tracking-[-0.01em] text-neutral-900 sm:text-xl">What happens if my thermal store paper receipt has already faded?</span>
+              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-neutral-300 bg-white">
+                <svg class="faq-plus h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+              </span>
+            </button>
+            <div class="faq-body"><div class="max-w-2xl pb-7 pr-12 text-base leading-7 text-neutral-600">
+              WarrantyVault's optical OCR engine utilizes multi-spectrum edge contrast enhancement to reconstruct faded thermal receipt text, extracting transaction numbers, store register IDs, timestamps, and product SKUs even when faint or creased.
+            </div></div>
+          </div>
+
+          <div class="faq-item">
+            <button type="button" class="faq-head flex w-full cursor-pointer items-center justify-between gap-6 py-6 text-left sm:py-7" aria-expanded="false">
+              <span class="font-display text-lg tracking-[-0.01em] text-neutral-900 sm:text-xl">What is the Magnuson-Moss Warranty Act cited in claims?</span>
+              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-neutral-300 bg-white">
+                <svg class="faq-plus h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+              </span>
+            </button>
+            <div class="faq-body"><div class="max-w-2xl pb-7 pr-12 text-base leading-7 text-neutral-600">
+              The Magnuson-Moss Warranty Act (15 U.S.C. § 2301) is federal law in the United States governing consumer product warranties. It prevents deceptive warranty practices and enforces implied warranties of merchantability, ensuring goods are fit for their ordinary purpose beyond arbitrary store return windows.
+            </div></div>
+          </div>
+
+          <div class="faq-item">
+            <button type="button" class="faq-head flex w-full cursor-pointer items-center justify-between gap-6 py-6 text-left sm:py-7" aria-expanded="false">
+              <span class="font-display text-lg tracking-[-0.01em] text-neutral-900 sm:text-xl">Can a retailer deny my claim because their "30-day return policy" has passed?</span>
+              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-neutral-300 bg-white">
+                <svg class="faq-plus h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+              </span>
+            </button>
+            <div class="faq-body"><div class="max-w-2xl pb-7 pr-12 text-base leading-7 text-neutral-600">
+              No. Store return policies govern voluntary customer change-of-mind returns. They do NOT negate statutory warranties against manufacturing defects, which typically extend 1 to 4 years under state and federal commercial codes (such as UCC § 2-314 and EU Directive 2019/771).
+            </div></div>
+          </div>
+
+          <div class="faq-item">
+            <button type="button" class="faq-head flex w-full cursor-pointer items-center justify-between gap-6 py-6 text-left sm:py-7" aria-expanded="false">
+              <span class="font-display text-lg tracking-[-0.01em] text-neutral-900 sm:text-xl">What if I threw away the original product box and packaging?</span>
+              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-neutral-300 bg-white">
+                <svg class="faq-plus h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+              </span>
+            </button>
+            <div class="faq-body"><div class="max-w-2xl pb-7 pr-12 text-base leading-7 text-neutral-600">
+              By law, manufacturers cannot require original packaging for valid warranty or statutory defect claims. As long as you possess proof of purchase and a readable serial number or device IMEI, your legal rights remain fully enforceable.
+            </div></div>
+          </div>
+
+          <div class="faq-item">
+            <button type="button" class="faq-head flex w-full cursor-pointer items-center justify-between gap-6 py-6 text-left sm:py-7" aria-expanded="false">
+              <span class="font-display text-lg tracking-[-0.01em] text-neutral-900 sm:text-xl">How does the 1-click statutory RMA demand generator work?</span>
+              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-neutral-300 bg-white">
+                <svg class="faq-plus h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+              </span>
+            </button>
+            <div class="faq-body"><div class="max-w-2xl pb-7 pr-12 text-base leading-7 text-neutral-600">
+              When you click "Demand RMA Replacement", WarrantyVault compiles your device metadata, purchase date, serial number, and failure symptom into a certified legal demand letter citing applicable consumer protection acts, complete with 1-click clipboard copy and certified printing.
+            </div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 11 · STATEMENT ============ -->
+  <section id="statement" class="relative overflow-hidden bg-neutral-100 py-24 sm:py-32">
+    <div class="mx-auto max-w-6xl px-5 text-center sm:px-8">
+      <p class="text-sm text-neutral-500" data-reveal="">
+        Designed for every electronic device you legally own.
+      </p>
+      <h2 class="font-display mx-auto mt-10 max-w-5xl text-[16vw] font-medium leading-[0.84] tracking-[-0.045em] text-neutral-900 sm:text-8xl lg:text-[9.5rem]" data-statement="">
+        <span class="line-mask"><span class="line-inner">PROTECT</span></span>
+        <span class="line-mask"><span class="line-inner">EVERY</span></span>
+        <span class="line-mask"><span class="line-inner text-neutral-400">DEVICE</span></span>
+      </h2>
+      <div class="mt-14 flex flex-wrap justify-center gap-3" data-stagger="">
+        <button onclick="openWarrantyApp()" class="inline-flex items-center gap-2 rounded-full bg-acid px-7 py-3.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink transition hover:bg-ink hover:text-white cursor-pointer shadow-[0_0_25px_rgba(200,255,61,0.35)]">
+          🚀 Launch Live Demo <i data-lucide="arrow-right" class="h-4 w-4" stroke-width="2"></i>
+        </button>
+        <a href="#products" class="inline-flex items-center gap-2 rounded-full border border-neutral-300 bg-white px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-900 shadow-sm transition hover:bg-ink hover:text-white cursor-pointer">
+          Explore Vault <i data-lucide="shield" class="h-4 w-4" stroke-width="1.5"></i>
+        </a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="relative overflow-hidden bg-ink text-white" id="support" style="background-image: radial-gradient(circle at 72% 60%, rgba(255,255,255,.03), transparent 32%), radial-gradient(circle at 10% 90%, rgba(255,255,255,.02), transparent 26%)">
+  <div class="mx-auto max-w-7xl px-5 pt-10 sm:px-8 lg:px-10">
+    <div class="flex items-center gap-5">
+      <span class="h-px flex-1 origin-left bg-white/20" data-line=""></span>
+      <span class="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/25">
+        <i data-lucide="sparkle" class="h-5 w-5" stroke-width="1.5"></i>
+      </span>
+    </div>
+
+    <div class="grid grid-cols-2 gap-x-8 gap-y-12 py-14 md:grid-cols-4 lg:gap-x-20" data-stagger="">
+      <div>
+        <h3 class="flex items-center gap-4 font-display text-[10px] uppercase tracking-[0.22em]"><span class="h-1 w-1 rounded-full bg-acid"></span>Vault Modules</h3>
+        <nav class="mt-7 flex flex-col gap-4 text-base text-white/55" aria-label="Products">
+          <a href="#products" class="w-fit transition hover:text-white">Hardware Vault</a>
+          <a href="#lineup" class="w-fit transition hover:text-white">Optical Scanner</a>
+          <a href="#lineup" class="w-fit transition hover:text-white">Statutory Shield</a>
+          <a href="#" class="w-fit transition hover:text-white">Auto-RMA Generator</a>
+          <a href="#" class="w-fit transition hover:text-white">Faded Receipt OCR</a>
+        </nav>
+      </div>
+      <div>
+        <h3 class="flex items-center gap-4 font-display text-[10px] uppercase tracking-[0.22em]"><span class="h-1 w-1 rounded-full bg-acid"></span>Jurisdictions</h3>
+        <nav class="mt-7 flex flex-col gap-4 text-base text-white/55" aria-label="Jurisdictions">
+          <a href="#tech" class="w-fit transition hover:text-white">UCC § 2-314 (US)</a>
+          <a href="#tech" class="w-fit transition hover:text-white">Magnuson-Moss Act</a>
+          <a href="#tech" class="w-fit transition hover:text-white">UK Consumer Rights 2015</a>
+          <a href="#tech" class="w-fit transition hover:text-white">EU Directive 2019/771</a>
+          <a href="#tech" class="w-fit transition hover:text-white">Statutory Legal Guide</a>
+        </nav>
+      </div>
+      <div>
+        <h3 class="flex items-center gap-4 font-display text-[10px] uppercase tracking-[0.22em]"><span class="h-1 w-1 rounded-full bg-acid"></span>Legal & RMA</h3>
+        <nav class="mt-7 flex flex-col gap-4 text-base text-white/55" aria-label="Support">
+          <a href="#faq" class="w-fit transition hover:text-white">Help Center</a>
+          <a href="#" class="w-fit transition hover:text-white">Claim Templates</a>
+          <a href="#" class="w-fit transition hover:text-white">Retailer Escalation</a>
+          <a href="#" class="w-fit transition hover:text-white">Statutory Rights</a>
+          <a href="#" class="w-fit transition hover:text-white">Dispute Support</a>
+        </nav>
+      </div>
+      <div>
+        <h3 class="flex items-center gap-4 font-display text-[10px] uppercase tracking-[0.22em]"><span class="h-1 w-1 rounded-full bg-acid"></span>Platform</h3>
+        <nav class="mt-7 flex flex-col gap-4 text-base text-white/55" aria-label="Company">
+          <a href="#" class="w-fit transition hover:text-white">About WarrantyVault</a>
+          <a href="#" class="w-fit transition hover:text-white">Security & Privacy</a>
+          <a href="#" class="w-fit transition hover:text-white">API Integration</a>
+          <a href="#" class="w-fit transition hover:text-white">Hardware Database</a>
+          <a href="#" class="w-fit transition hover:text-white">Press & Media</a>
+        </nav>
+      </div>
+    </div>
+
+    <div class="relative grid min-h-72 overflow-hidden pb-10 pt-6 lg:grid-cols-[0.9fr_1.5fr] lg:items-end">
+      <div class="relative z-10 max-w-md">
+        <h2 class="font-display text-2xl leading-tight tracking-[-0.02em] sm:text-3xl" data-split="lines">
+          Built for hardware owners. Straight to your inbox.
+        </h2>
+        <p class="mt-4 text-base leading-7 text-white/55" data-reveal="">
+          Consumer legal cheat sheets, warranty expiration alerts, and claim victory guides.
+        </p>
+        <form id="subForm" class="mt-7 flex h-14 max-w-sm overflow-hidden rounded-xl border border-white/25 bg-white/[0.03] transition-colors focus-within:border-acid" action="#" method="post">
+          <label for="footer-email" class="sr-only">Enter your email</label>
+          <input id="footer-email" name="email" type="email" required="" placeholder="Enter your email" class="min-w-0 flex-1 bg-transparent px-4 text-base text-white outline-none placeholder:text-white/40">
+          <button type="submit" aria-label="Subscribe" data-cursor="Send" class="grid w-14 shrink-0 place-items-center border-l border-white/20 transition hover:bg-acid hover:text-ink">
+            <i data-lucide="arrow-right" class="h-5 w-5" stroke-width="1.5"></i>
+          </button>
+        </form>
+        <p id="subMsg" class="mt-3 h-5 font-display text-[10px] uppercase tracking-[0.2em] text-acid opacity-0">You are on the list.</p>
+      </div>
+
+      <div class="pointer-events-none relative mt-16 h-48 lg:mt-0 lg:h-64">
+        <svg viewBox="0 0 900 320" aria-hidden="true" class="absolute inset-x-0 bottom-0 h-full w-full text-white/[0.09]" fill="none">
+          <path d="M20 190C112 22 224 36 337 126C449 215 536 27 666 59C760 82 827 163 884 211" stroke="currentColor" stroke-width="1" stroke-dasharray="2 5"></path>
+          <path d="M18 207C109 39 225 53 337 142C447 229 538 45 665 76C759 98 826 179 884 226" stroke="currentColor" stroke-width="1" stroke-dasharray="2 5"></path>
+          <path d="M16 224C108 57 224 70 337 159C447 245 539 63 665 92C757 114 826 195 884 241" stroke="currentColor" stroke-width="1" stroke-dasharray="2 5"></path>
+          <path d="M15 241C106 74 223 87 337 176C447 262 540 80 665 109C756 130 826 211 884 256" stroke="currentColor" stroke-width="1" stroke-dasharray="2 5"></path>
+          <path d="M14 258C105 91 223 104 337 193C447 278 541 97 665 126C755 147 826 227 884 271" stroke="currentColor" stroke-width="1" stroke-dasharray="2 5"></path>
+          <path d="M13 275C104 108 222 121 337 210C447 295 542 114 665 143C754 164 826 243 884 286" stroke="currentColor" stroke-width="1" stroke-dasharray="2 5"></path>
+        </svg>
+        <p id="footerWord" class="absolute inset-x-0 bottom-0 whitespace-nowrap text-center font-display text-8xl font-light leading-none tracking-[-0.04em] sm:text-9xl lg:text-[10rem]" style="-webkit-text-stroke: 1px rgba(255,255,255,.14); color: rgba(255,255,255,.06)">VAULT</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="border-t border-white/15">
+    <div class="mx-auto flex max-w-7xl flex-col gap-7 px-5 py-7 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:px-10">
+      <div class="flex items-center gap-5">
+        <a href="#top" aria-label="NIVO home" data-magnetic="" data-cursor="Top" class="grid h-12 w-12 place-items-center rounded-full border border-white/25 font-display text-2xl font-light transition hover:border-acid hover:text-acid">N</a>
+        <p class="text-sm text-white/50">© 2026 WarrantyVault — Devpost Learn Hackathon Project</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-3" data-social="">
+        <a href="#" aria-label="Instagram" data-magnetic="" data-cursor="Follow" class="group relative grid h-11 w-11 place-items-center overflow-hidden rounded-full border border-white/25 text-white/70 transition-colors duration-500 hover:border-acid hover:text-ink">
+          <span class="absolute inset-0 scale-0 rounded-full bg-acid transition-transform duration-500 ease-[cubic-bezier(.16,1,.3,1)] group-hover:scale-100"></span>
+          <svg viewBox="0 0 24 24" fill="currentColor" class="relative h-[15px] w-[15px]" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24s3.668-.014 4.948-.072c4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"></path></svg>
+        </a>
+        <a href="#" aria-label="YouTube" data-magnetic="" data-cursor="Watch" class="group relative grid h-11 w-11 place-items-center overflow-hidden rounded-full border border-white/25 text-white/70 transition-colors duration-500 hover:border-acid hover:text-ink">
+          <span class="absolute inset-0 scale-0 rounded-full bg-acid transition-transform duration-500 ease-[cubic-bezier(.16,1,.3,1)] group-hover:scale-100"></span>
+          <svg viewBox="0 0 24 24" fill="currentColor" class="relative h-[15px] w-[15px]" aria-hidden="true"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"></path></svg>
+        </a>
+        <a href="#" aria-label="TikTok" data-magnetic="" data-cursor="Follow" class="group relative grid h-11 w-11 place-items-center overflow-hidden rounded-full border border-white/25 text-white/70 transition-colors duration-500 hover:border-acid hover:text-ink">
+          <span class="absolute inset-0 scale-0 rounded-full bg-acid transition-transform duration-500 ease-[cubic-bezier(.16,1,.3,1)] group-hover:scale-100"></span>
+          <svg viewBox="0 0 24 24" fill="currentColor" class="relative h-[15px] w-[15px]" aria-hidden="true"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"></path></svg>
+        </a>
+        <a href="#" aria-label="X" data-magnetic="" data-cursor="Follow" class="group relative grid h-11 w-11 place-items-center overflow-hidden rounded-full border border-white/25 text-white/70 transition-colors duration-500 hover:border-acid hover:text-ink">
+          <span class="absolute inset-0 scale-0 rounded-full bg-acid transition-transform duration-500 ease-[cubic-bezier(.16,1,.3,1)] group-hover:scale-100"></span>
+          <svg viewBox="0 0 24 24" fill="currentColor" class="relative h-[14px] w-[14px]" aria-hidden="true"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.933zm-1.291 19.49h2.039L6.486 3.24H4.298l13.312 17.403z"></path></svg>
+        </a>
+        <a href="#" aria-label="Discord" data-magnetic="" data-cursor="Join" class="group relative grid h-11 w-11 place-items-center overflow-hidden rounded-full border border-white/25 text-white/70 transition-colors duration-500 hover:border-acid hover:text-ink">
+          <span class="absolute inset-0 scale-0 rounded-full bg-acid transition-transform duration-500 ease-[cubic-bezier(.16,1,.3,1)] group-hover:scale-100"></span>
+          <svg viewBox="0 0 24 24" fill="currentColor" class="relative h-[16px] w-[16px]" aria-hidden="true"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.331c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"></path></svg>
+        </a>
+      </div>
+      <nav class="flex flex-wrap items-center gap-x-5 gap-y-3 text-sm text-white/50" aria-label="Legal">
+        <a href="#" class="transition hover:text-white">Privacy</a><span class="text-white/25">/</span>
+        <a href="#" class="transition hover:text-white">Terms</a><span class="text-white/25">/</span>
+        <a href="#" class="transition hover:text-white">Accessibility</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+      
+    <!-- Floating Demo Quick Access Trigger -->
+    <aside class="floating-demo-dock" id="floating-demo-dock" aria-label="Live Demo Quick Access">
+      <a href="javascript:void(0)" onclick="openWarrantyApp('vault.html')" class="btn-open-demo floating-demo-card" style="text-decoration: none;">
+        <div class="floating-demo-pulse"></div>
+        <div class="floating-demo-body">
+          <span class="floating-demo-badge">LIVE DEMO • 1-CLICK</span>
+          <span class="floating-demo-title">WarrantyVault Claim Engine</span>
+          <span class="floating-demo-sub">Scan receipts & auto-generate legal RMA claims →</span>
+        </div>
+      </a>
+    </aside>
+
+    </div>
+
+    <!-- NIVO SCRIPTS & ANIMATION ENGINE -->
+    
+
+<!-- libs -->
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.14/dist/lenis.min.js"></script>
+<script>
+/* =========================================================
+   NIVO — scroll experience
+   GSAP + ScrollTrigger + Lenis
+   ========================================================= */
+(function () {
+  'use strict';
+
+  var hasGSAP = typeof window.gsap !== 'undefined' && typeof window.ScrollTrigger !== 'undefined';
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (window.lucide) lucide.createIcons();
+
+  /* ---- graceful degradation: no GSAP or reduced motion -> plain page ---- */
+  if (!hasGSAP || reduced) {
+    document.documentElement.classList.remove('js');
+    var pre = document.getElementById('preloader');
+    var pan = document.getElementById('plPanel');
+    if (pre) pre.remove();
+    if (pan) pan.remove();
+    initMenu();
+    initFAQ();
+    initForm();
+    return;
+  }
+
+  gsap.registerPlugin(ScrollTrigger);
+  gsap.config({ nullTargetWarn: false });
+
+  var EASE = 'expo.out';
+  var isTouch = window.matchMedia('(hover: none), (pointer: coarse)').matches;
+
+  /* =========================================================
+     1 · SMOOTH SCROLL
+     ========================================================= */
+  var lenis = new Lenis({
+    duration: 1.15,
+    easing: function (t) { return Math.min(1, 1.001 - Math.pow(2, -10 * t)); },
+    smoothWheel: true,
+    touchMultiplier: 1.6,
+  });
+  lenis.on('scroll', ScrollTrigger.update);
+  // Pinning changes document height after Lenis has cached its scroll limit,
+  // which otherwise clamps deep anchor jumps short of the target.
+  ScrollTrigger.addEventListener('refresh', function () { lenis.resize(); });
+  gsap.ticker.add(function (time) { lenis.raf(time * 1000); });
+  gsap.ticker.lagSmoothing(0);
+  lenis.stop(); // released by the preloader
+
+  // anchor links routed through Lenis
+  document.querySelectorAll('a[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      var id = a.getAttribute('href');
+      if (!id || id === '#') return;
+      var target = document.querySelector(id);
+      if (!target) return;
+      e.preventDefault();
+      lenis.scrollTo(target, { offset: -60, duration: 1.4 });
+    });
+  });
+
+  /* =========================================================
+     2 · TEXT SPLITTING (words, then measured lines)
+     ========================================================= */
+  function splitWords(el) {
+    var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+    var nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(function (node) {
+      if (!node.nodeValue.trim()) return;
+      var frag = document.createDocumentFragment();
+      node.nodeValue.split(/(\s+)/).forEach(function (chunk) {
+        if (!chunk) return;
+        if (/^\s+$/.test(chunk)) { frag.appendChild(document.createTextNode(chunk)); return; }
+        var s = document.createElement('span');
+        s.className = 'word';
+        s.textContent = chunk;
+        frag.appendChild(s);
+      });
+      node.parentNode.replaceChild(frag, node);
+    });
+    return Array.prototype.slice.call(el.querySelectorAll('.word'));
+  }
+
+  // Groups words into masked lines by measuring their vertical offset.
+  // Re-runnable: the original text is stashed so a resize can re-wrap.
+  function splitLines(el, force) {
+    if (el.dataset.splitDone && !force) return Array.prototype.slice.call(el.querySelectorAll('.line-inner'));
+    if (!el.dataset.origText) el.dataset.origText = el.textContent.replace(/\s+/g, ' ').trim();
+    if (force) { el.innerHTML = el.dataset.origText; el.removeAttribute('data-split-done'); delete el.dataset.splitDone; }
+    var words = splitWords(el);
+    if (!words.length) return [];
+    var lines = [];
+    var current = null;
+    var lastTop = null;
+    words.forEach(function (w) {
+      var top = Math.round(w.offsetTop);
+      if (lastTop === null || Math.abs(top - lastTop) > 4) { current = []; lines.push(current); lastTop = top; }
+      current.push(w);
+    });
+    el.innerHTML = '';
+    var inners = [];
+    lines.forEach(function (group) {
+      var mask = document.createElement('span');
+      mask.className = 'line-mask';
+      var inner = document.createElement('span');
+      inner.className = 'line-inner';
+      inner.textContent = group.map(function (w) { return w.textContent; }).join(' ');
+      mask.appendChild(inner);
+      el.appendChild(mask);
+      inners.push(inner);
+    });
+    el.dataset.splitDone = '1';
+    el.style.opacity = '1';
+    return inners;
+  }
+
+  /* =========================================================
+     3 · PRELOADER
+     ========================================================= */
+  function preload() {
+    var num = document.getElementById('plNum');
+    var fill = document.getElementById('plFill');
+    var word = document.getElementById('plWord');
+    var pre = document.getElementById('preloader');
+    var panel = document.getElementById('plPanel');
+    var phases = ['Calibrating optics', 'Loading footage', 'Balancing audio', 'Ready to roll'];
+    var counter = { v: 0 };
+
+    var tl = gsap.timeline({ onComplete: revealHero });
+
+    tl.to(counter, {
+      v: 100, duration: 2.1, ease: 'power2.inOut',
+      onUpdate: function () {
+        var p = Math.round(counter.v);
+        num.textContent = p;
+        gsap.set(fill, { scaleX: p / 100 });
+        var idx = Math.min(phases.length - 1, Math.floor(p / 26));
+        if (word.textContent !== phases[idx]) word.textContent = phases[idx];
+      },
+    })
+      .to('#preloader .pl-bar, #preloader p, #preloader div > div', { opacity: 0, duration: 0.4, ease: 'power2.in' }, '+=0.15')
+      .to(pre, { yPercent: -100, duration: 0.9, ease: 'expo.inOut' }, '-=0.1')
+      .to(panel, { scaleY: 0, transformOrigin: 'top center', duration: 1.0, ease: 'expo.inOut' }, '-=0.75')
+      .add(function () { pre.remove(); panel.remove(); }, '>-0.05');
+  }
+
+  /* =========================================================
+     4 · HERO ENTRANCE
+     ========================================================= */
+  function revealHero() {
+    lenis.start();
+    var h1 = document.querySelector('#heroCopy h1');
+    var lines = h1 ? splitLines(h1) : [];
+
+    var tl = gsap.timeline();
+    tl.fromTo('#heroImg', { scale: 1.32, filter: 'brightness(0.5)' },
+      { scale: 1, filter: 'brightness(1)', duration: 2.0, ease: 'expo.out' }, 0)
+      .fromTo('#heroRule', { scaleX: 0 }, { scaleX: 1, duration: 1.0, ease: EASE }, 0.25)
+      .fromTo(lines, { yPercent: 118 }, { yPercent: 0, duration: 1.35, ease: EASE, stagger: 0.09 }, 0.3)
+      .fromTo('[data-hero-el]', { y: 26, opacity: 0 }, { y: 0, opacity: 1, duration: 1.0, ease: EASE, stagger: 0.08 }, 0.55)
+      .fromTo('#siteHeader', { y: -28, opacity: 0 }, { y: 0, opacity: 1, duration: 1.0, ease: EASE }, 0.4)
+      .fromTo('#cursor, #cursorDot', { opacity: 0 }, { opacity: 1, duration: 0.6 }, 0.9);
+
+    gsap.to('#scrollArrow', { y: 5, duration: 0.9, ease: 'sine.inOut', repeat: -1, yoyo: true });
+    ScrollTrigger.refresh();
+  }
+
+  /* =========================================================
+     5 · HERO SCROLL (parallax + fade out)
+     ========================================================= */
+  function heroScroll() {
+    gsap.timeline({
+      scrollTrigger: { trigger: '#hero', start: 'top top', end: 'bottom top', scrub: true },
+    })
+      .to('#heroImg', { yPercent: 12, scale: 1.12, ease: 'none' }, 0)
+      .to('#heroCopy', { yPercent: -22, opacity: 0, ease: 'none' }, 0)
+      .to('#heroVeil', { opacity: 0.65, ease: 'none' }, 0);
+  }
+
+  /* =========================================================
+     6 · NAV (theme swap + hide on scroll down)
+     ========================================================= */
+  function nav() {
+    var header = document.getElementById('siteHeader');
+    var darkSections = document.querySelectorAll('#hero, #gallery, #tech, #support');
+    var last = 0;
+
+    // switch link colors when the header sits over a dark section
+    ScrollTrigger.create({
+      trigger: document.body, start: 'top top', end: 'bottom bottom',
+      onUpdate: function () {
+        var over = false;
+        darkSections.forEach(function (sec) {
+          var r = sec.getBoundingClientRect();
+          if (r.top <= 72 && r.bottom >= 72) over = true;
+        });
+        setTheme(over ? 'light' : 'dark');
+      },
+    });
+
+    function setTheme(t) {
+      if (header.dataset.navTheme === t) return;
+      header.dataset.navTheme = t;
+      var onDark = true; // Always maintain high-contrast crisp white typography on matte dark pill
+      header.querySelectorAll('.nav-ink').forEach(function (el) {
+        el.classList.add('text-white');
+        el.classList.remove('text-neutral-900');
+      });
+      header.querySelectorAll('#navLinks a').forEach(function (el) {
+        el.classList.add('text-white/70');
+        el.classList.remove('text-neutral-500', 'text-neutral-900');
+        el.classList.add('hover:text-white');
+      });
+      var cta = header.querySelector('.nav-cta');
+      if (cta) {
+        cta.classList.add('bg-white', 'text-ink');
+        cta.classList.remove('bg-ink', 'text-white');
+      }
+    }
+
+    // condense into a floating pill + auto-hide going down
+    ScrollTrigger.create({
+      start: 'top -80',
+      onUpdate: function (self) {
+        var y = self.scroll();
+        var down = y > last && y > 320;
+        last = y;
+        gsap.to(header, { y: down ? -140 : 0, duration: 0.6, ease: 'power3.out', overwrite: true });
+      },
+      onToggle: function (self) {
+        gsap.to(header, {
+          top: self.isActive ? 12 : 36,
+          duration: 0.6, ease: 'power3.out',
+        });
+        var bar = header.querySelector('nav');
+        gsap.to(bar, {
+          backgroundColor: self.isActive ? 'rgba(8,9,10,0.85)' : 'rgba(8,9,10,0)',
+          backdropFilter: self.isActive ? 'blur(16px)' : 'blur(0px)',
+          borderRadius: self.isActive ? 999 : 0,
+          border: self.isActive ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(255,255,255,0)',
+          maxWidth: self.isActive ? 1120 : 1280,
+          paddingTop: self.isActive ? 10 : 16,
+          paddingBottom: self.isActive ? 10 : 16,
+          boxShadow: self.isActive ? '0 16px 40px rgba(0,0,0,0.5)' : '0 0 0 rgba(0,0,0,0)',
+          duration: 0.6, ease: 'power3.out',
+        });
+      },
+    });
+  }
+
+  /* =========================================================
+     7 · CURSOR + MAGNETIC
+     ========================================================= */
+  function cursor() {
+    if (isTouch) return;
+    var ring = document.getElementById('cursor');
+    var dot = document.getElementById('cursorDot');
+    var label = ring.querySelector('.c-label');
+    var rx = gsap.quickTo(ring, 'x', { duration: 0.55, ease: 'power3' });
+    var ry = gsap.quickTo(ring, 'y', { duration: 0.55, ease: 'power3' });
+    var dx = gsap.quickTo(dot, 'x', { duration: 0.12, ease: 'power3' });
+    var dy = gsap.quickTo(dot, 'y', { duration: 0.12, ease: 'power3' });
+
+    window.addEventListener('mousemove', function (e) {
+      rx(e.clientX); ry(e.clientY); dx(e.clientX); dy(e.clientY);
+    });
+
+    document.querySelectorAll('a, button, [data-cursor]').forEach(function (el) {
+      var text = el.getAttribute('data-cursor');
+      el.addEventListener('mouseenter', function () {
+        gsap.to(ring, { scale: text ? 1.9 : 1.5, duration: 0.4, ease: 'power3.out' });
+        gsap.to(dot, { scale: 0, duration: 0.3 });
+        if (text) { label.textContent = text; gsap.to(label, { opacity: 1, duration: 0.3 }); }
+      });
+      el.addEventListener('mouseleave', function () {
+        gsap.to(ring, { scale: 1, duration: 0.4, ease: 'power3.out' });
+        gsap.to(dot, { scale: 1, duration: 0.3 });
+        gsap.to(label, { opacity: 0, duration: 0.2 });
+      });
+    });
+
+    document.querySelectorAll('[data-magnetic]').forEach(function (el) {
+      var qx = gsap.quickTo(el, 'x', { duration: 0.5, ease: 'power3' });
+      var qy = gsap.quickTo(el, 'y', { duration: 0.5, ease: 'power3' });
+      el.addEventListener('mousemove', function (e) {
+        var r = el.getBoundingClientRect();
+        qx((e.clientX - (r.left + r.width / 2)) * 0.34);
+        qy((e.clientY - (r.top + r.height / 2)) * 0.44);
+      });
+      el.addEventListener('mouseleave', function () { qx(0); qy(0); });
+    });
+  }
+
+  /* =========================================================
+     8 · GENERIC REVEALS
+     ========================================================= */
+  function reveals() {
+    // An element inside a position:sticky ancestor moves relative to the flow,
+    // so ScrollTrigger's computed start can sit past the end of the page and
+    // never fire. Trigger off the enclosing section instead.
+    function triggerFor(el) {
+      var node = el;
+      while (node && node !== document.body) {
+        if (getComputedStyle(node).position === 'sticky') return el.closest('section') || el;
+        node = node.parentElement;
+      }
+      return el;
+    }
+
+    document.querySelectorAll('[data-split="lines"]').forEach(function (el) {
+      var lines = splitLines(el);
+      gsap.fromTo(lines, { yPercent: 112 }, {
+        yPercent: 0, duration: 1.25, ease: EASE, stagger: 0.08,
+        scrollTrigger: { trigger: triggerFor(el), start: 'top 88%' },
+      });
+    });
+
+    document.querySelectorAll('[data-reveal]').forEach(function (el) {
+      gsap.fromTo(el, { y: 24, opacity: 0 }, {
+        y: 0, opacity: 1, duration: 1.0, ease: EASE,
+        scrollTrigger: { trigger: triggerFor(el), start: 'top 90%' },
+      });
+    });
+
+    document.querySelectorAll('[data-stagger]').forEach(function (el) {
+      gsap.fromTo(el.children, { y: 30, opacity: 0 }, {
+        y: 0, opacity: 1, duration: 0.95, ease: EASE, stagger: 0.07,
+        scrollTrigger: { trigger: el, start: 'top 88%' },
+      });
+    });
+
+    document.querySelectorAll('[data-clip]').forEach(function (el) {
+      gsap.fromTo(el, { clipPath: 'inset(0 0 100% 0)' }, {
+        clipPath: 'inset(0 0 0% 0)', duration: 1.5, ease: 'expo.out',
+        scrollTrigger: { trigger: el, start: 'top 86%' },
+      });
+    });
+
+    document.querySelectorAll('[data-line]').forEach(function (el) {
+      gsap.fromTo(el, { scaleX: 0 }, {
+        scaleX: 1, duration: 1.6, ease: 'expo.out',
+        scrollTrigger: { trigger: el, start: 'top 92%' },
+      });
+    });
+
+    // image parallax inside its frame
+    document.querySelectorAll('[data-parallax-img]').forEach(function (img) {
+      gsap.fromTo(img, { yPercent: -6 }, {
+        yPercent: 6, ease: 'none',
+        scrollTrigger: { trigger: img.parentElement, start: 'top bottom', end: 'bottom top', scrub: true },
+      });
+    });
+  }
+
+  /* =========================================================
+     8b · CREATOR STORIES — typed eyebrow, word-fed body, rolling index
+     ========================================================= */
+  function storyType() {
+    // Cards enter from the side they sit on: 01/03 from the left, 02/04 from
+    // the right. This is the dominant motion — the detail work below lands after.
+    document.querySelectorAll('[data-story]').forEach(function (card, i) {
+      var fromLeft = i % 2 === 0;
+      gsap.fromTo(card,
+        { x: fromLeft ? -120 : 120, opacity: 0 },
+        {
+          x: 0, opacity: 1, duration: 1.5, ease: 'expo.out',
+          scrollTrigger: { trigger: card, start: 'top 82%' },
+        });
+    });
+
+    document.querySelectorAll('[data-type]').forEach(function (el) {
+      // source markup is indented, so collapse the whitespace first
+      var full = el.textContent.replace(/\s+/g, ' ').trim();
+      if (!full) return;
+
+      // A hidden ghost of the finished text holds the exact box (measuring a
+      // height instead gets the line count wrong once the text is re-wrapped),
+      // and the typed copy is laid over it. Nothing below ever moves.
+      el.setAttribute('aria-label', full);
+      el.innerHTML =
+        '<span class="type-ghost" aria-hidden="true">' + full + '</span>' +
+        '<span class="type-live" aria-hidden="true">' +
+          '<span class="type-line"></span><span class="caret"></span>' +
+        '</span>';
+      var live = el.lastElementChild;
+      var out = live.firstElementChild;
+      var caret = live.lastElementChild;
+      var o = { i: 0 };
+      var delay = parseFloat(el.getAttribute('data-type-delay')) || 0;
+
+      ScrollTrigger.create({
+        trigger: el, start: 'top 88%', once: true,
+        onEnter: function () {
+          gsap.delayedCall(delay, function () {
+            caret.classList.add('is-live');
+            gsap.to(o, {
+              i: full.length,
+              duration: Math.max(0.6, Math.min(1.9, full.length * 0.03)),
+              ease: 'none',
+              onUpdate: function () { out.textContent = full.slice(0, Math.round(o.i)); },
+              onComplete: function () {
+                out.textContent = full;
+                // the CSS blink outranks an inline opacity, so drop it first
+                gsap.delayedCall(0.7, function () {
+                  caret.classList.remove('is-live');
+                  gsap.fromTo(caret, { opacity: 0.9 }, { opacity: 0, duration: 0.45 });
+                });
+              },
+            });
+          });
+        },
+      });
+    });
+
+    document.querySelectorAll('[data-words]').forEach(function (el) {
+      var words = splitWords(el);
+      if (!words.length) return;
+      gsap.fromTo(words, { yPercent: 55, opacity: 0 }, {
+        yPercent: 0, opacity: 1, duration: 0.9, ease: 'power3.out', stagger: 0.014,
+        scrollTrigger: { trigger: el, start: 'top 90%' },
+      });
+    });
+
+    document.querySelectorAll('[data-num]').forEach(function (el) {
+      var end = parseInt(el.textContent.trim(), 10);
+      if (isNaN(end)) return;
+      var o = { v: 0 };
+      ScrollTrigger.create({
+        trigger: el, start: 'top 92%', once: true,
+        onEnter: function () {
+          gsap.to(o, {
+            v: end, duration: 1.1, ease: 'power2.out',
+            onUpdate: function () {
+              var n = Math.round(o.v);
+              el.textContent = (n < 10 ? '0' : '') + n;
+            },
+          });
+        },
+      });
+    });
+  }
+
+  /* =========================================================
+     9 · MANIFESTO — word-by-word scrub
+     ========================================================= */
+  function manifesto() {
+    var el = document.getElementById('manifestoText');
+    if (!el) return;
+    var words = splitWords(el);
+    gsap.set(words, { opacity: 0.12 });
+    gsap.to(words, {
+      opacity: 1, ease: 'none', stagger: 1,
+      scrollTrigger: { trigger: el, start: 'top 78%', end: 'bottom 55%', scrub: 0.6 },
+    });
+  }
+
+  /* =========================================================
+     10 · COUNTERS
+     ========================================================= */
+  function counters() {
+    document.querySelectorAll('[data-count]').forEach(function (el) {
+      var end = parseFloat(el.getAttribute('data-count'));
+      var suffix = el.getAttribute('data-suffix') || '';
+      var obj = { v: 0 };
+      ScrollTrigger.create({
+        trigger: el, start: 'top 90%', once: true,
+        onEnter: function () {
+          gsap.to(obj, {
+            v: end, duration: 1.8, ease: 'power3.out',
+            onUpdate: function () { el.textContent = Math.round(obj.v) + suffix; },
+          });
+        },
+      });
+    });
+  }
+
+  /* =========================================================
+     11 · STACKING PRODUCT CARDS
+     ========================================================= */
+  function stack() {
+    var cards = document.querySelectorAll('[data-stack-card]');
+    cards.forEach(function (card, i) {
+      if (i === cards.length - 1) return;
+      gsap.to(card.firstElementChild, {
+        scale: 0.9, yPercent: -4, filter: 'brightness(0.82)', ease: 'none',
+        scrollTrigger: {
+          trigger: cards[i + 1],
+          start: 'top bottom',
+          end: 'top 18%',
+          scrub: true,
+        },
+      });
+    });
+  }
+
+  /* =========================================================
+     BOOT (part 2 attaches the rest)
+     ========================================================= */
+  window.__nivo = { lenis: lenis, EASE: EASE, isTouch: isTouch, splitWords: splitWords, splitLines: splitLines };
+
+  function initMenu() {
+    var menuButton = document.getElementById('menuButton');
+    var mobileMenu = document.getElementById('mobileMenu');
+    if (!menuButton || !mobileMenu) return;
+    function icon(name) {
+      menuButton.innerHTML = '<i data-lucide="' + name + '" class="h-5 w-5" stroke-width="1.5"></i>';
+      if (window.lucide) lucide.createIcons();
+    }
+    menuButton.addEventListener('click', function () {
+      var isOpen = !mobileMenu.classList.contains('hidden');
+      mobileMenu.classList.toggle('hidden');
+      mobileMenu.classList.toggle('pointer-events-none', isOpen);
+      menuButton.setAttribute('aria-expanded', String(!isOpen));
+      icon(isOpen ? 'menu' : 'x');
+      if (!isOpen && window.gsap) {
+        gsap.fromTo(mobileMenu, { y: -14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: 'power3.out' });
+        gsap.fromTo(mobileMenu.querySelectorAll('a'), { y: 12, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.5, ease: 'power3.out', stagger: 0.05, delay: 0.05 });
+      }
+    });
+    mobileMenu.querySelectorAll('a').forEach(function (link) {
+      link.addEventListener('click', function () {
+        mobileMenu.classList.add('hidden', 'pointer-events-none');
+        menuButton.setAttribute('aria-expanded', 'false');
+        icon('menu');
+      });
+    });
+  }
+
+  function initFAQ() {
+    document.querySelectorAll('.faq-item').forEach(function (item) {
+      var head = item.querySelector('.faq-head');
+      var body = item.querySelector('.faq-body');
+      if (item.classList.contains('is-open')) body.style.height = 'auto';
+      head.addEventListener('click', function () {
+        var open = item.classList.contains('is-open');
+        // close siblings
+        item.parentElement.querySelectorAll('.faq-item.is-open').forEach(function (other) {
+          if (other === item) return;
+          other.classList.remove('is-open');
+          other.querySelector('.faq-head').setAttribute('aria-expanded', 'false');
+          var ob = other.querySelector('.faq-body');
+          if (window.gsap) gsap.to(ob, { height: 0, duration: 0.5, ease: 'power3.inOut' });
+          else ob.style.height = '0px';
+        });
+        item.classList.toggle('is-open', !open);
+        head.setAttribute('aria-expanded', String(!open));
+        if (window.gsap) {
+          gsap.to(body, {
+            height: open ? 0 : body.firstElementChild.offsetHeight,
+            duration: 0.55, ease: 'power3.inOut',
+            onComplete: function () {
+              if (!open) body.style.height = 'auto';
+              if (window.ScrollTrigger) window.ScrollTrigger.refresh();
+            },
+          });
+        } else {
+          body.style.height = open ? '0px' : 'auto';
+        }
+      });
+    });
+  }
+
+  function initForm() {
+    var form = document.getElementById('subForm');
+    var msg = document.getElementById('subMsg');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var input = form.querySelector('input');
+      if (!input.value || !input.checkValidity()) {
+        if (window.gsap) gsap.fromTo(form, { x: -8 }, { x: 0, duration: 0.5, ease: 'elastic.out(1,0.35)' });
+        return;
+      }
+      input.value = '';
+      input.placeholder = 'Thanks — check your inbox';
+      if (window.gsap) gsap.to(msg, { opacity: 1, duration: 0.4 });
+      else msg.style.opacity = '1';
+    });
+  }
+
+  window.__nivo.initMenu = initMenu;
+  window.__nivo.initFAQ = initFAQ;
+  window.__nivo.initForm = initForm;
+
+  /* =========================================================
+     BOOT GATE — Tailwind CDN injects utilities asynchronously, so any
+     layout measurement (line wrapping, pin distances) must wait for it.
+     #twProbe is display:none only once those utilities exist.
+     ========================================================= */
+  // Timer-based, never rAF: background/hidden tabs freeze rAF and the whole
+  // page would then boot unstyled (or not at all).
+  function whenStyled(cb) {
+    var probe = document.getElementById('twProbe');
+    var tries = 0;
+    (function poll() {
+      var styled = !probe || getComputedStyle(probe).display === 'none';
+      if (styled || ++tries > 150) {
+        var fonts = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+        fonts.then(function () { setTimeout(cb, 30); });
+      } else {
+        setTimeout(poll, 20);
+      }
+    })();
+  }
+
+  // Re-wrap every split heading when the viewport width changes.
+  function watchResize() {
+    var w = window.innerWidth;
+    var t;
+    window.addEventListener('resize', function () {
+      if (window.innerWidth === w) return;
+      w = window.innerWidth;
+      clearTimeout(t);
+      t = setTimeout(function () {
+        document.querySelectorAll('[data-split="lines"]').forEach(function (el) {
+          var lines = splitLines(el, true);
+          gsap.set(lines, { yPercent: 0 });
+        });
+        ScrollTrigger.refresh();
+      }, 220);
+    });
+  }
+
+  window.__nivo.whenStyled = whenStyled;
+
+  whenStyled(function () {
+    heroScroll();
+    nav();
+    cursor();
+    reveals();
+    storyType();
+    manifesto();
+    counters();
+    stack();
+    initMenu();
+    initFAQ();
+    initForm();
+    watchResize();
+    if (window.__nivoPart2) window.__nivoPart2();
+    ScrollTrigger.refresh();
+    preload();
+  });
+})();
+</script>
+
+<script>
+/* =========================================================
+   NIVO — scroll experience, part 2
+   Marquees · horizontal pin · aperture · progress · statement
+   ========================================================= */
+(function () {
+  'use strict';
+  if (!window.__nivo || typeof window.gsap === 'undefined') return;
+
+  var EASE = window.__nivo.EASE;
+  var lenis = window.__nivo.lenis;
+
+  /* =========================================================
+     12 · MARQUEES (scroll-velocity aware)
+     ========================================================= */
+  function marquees() {
+    var scrollVel = 0;
+    lenis.on('scroll', function (e) { scrollVel = e.velocity || 0; });
+
+    document.querySelectorAll('[data-marquee]').forEach(function (track) {
+      var base = parseFloat(track.getAttribute('data-speed')) || 0.4;
+      var reactive = track.hasAttribute('data-velocity');
+      var half = 0;
+      var x = 0;
+
+      function measure() { half = track.scrollWidth / 2; }
+      measure();
+      window.addEventListener('resize', measure);
+
+      // start the positive-direction tracks off-screen left so they fill
+      if (base > 0) x = -half;
+
+      gsap.ticker.add(function (time, deltaTime) {
+        if (!half) return;
+        // normalize to 60fps so a 120Hz display doesn't run at double speed
+        var f = Math.min(deltaTime, 50) / 16.667;
+        var boost = reactive ? Math.min(Math.abs(scrollVel) * 0.28, 22) * (base < 0 ? -1 : 1) : 0;
+        x += (base + boost) * f;
+        if (x <= -half) x += half;
+        if (x >= 0 && base > 0) x -= half;
+        track.style.transform = 'translate3d(' + x + 'px,0,0)';
+      });
+    });
+  }
+
+  /* =========================================================
+     13 · HORIZONTAL PINNED GALLERY
+     ========================================================= */
+  function horizontal() {
+    var section = document.getElementById('hScroll');
+    var trackEl = document.getElementById('hTrack');
+    var bar = document.getElementById('hBar');
+    if (!section || !trackEl) return;
+
+    var distance = 0;
+    function getDistance() {
+      return Math.max(0, trackEl.scrollWidth - window.innerWidth);
+    }
+
+    var tween = gsap.to(trackEl, {
+      x: function () { distance = getDistance(); return -distance; },
+      ease: 'none',
+      scrollTrigger: {
+        trigger: section,
+        start: 'top top',
+        end: function () { return '+=' + getDistance(); },
+        pin: true,
+        scrub: 0.8,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
+        // Pinned triggers are created after the reveal triggers further down the
+        // page. Without a higher refresh priority they measure last, and every
+        // downstream start comes out short by this pin's distance — those
+        // animations then fire off-screen and are over before you see them.
+        refreshPriority: 2,
+        onUpdate: function (self) {
+          if (bar) bar.style.width = (self.progress * 100).toFixed(1) + '%';
+        },
+      },
+    });
+
+    // slight counter-parallax on each figure for depth
+    trackEl.querySelectorAll('figure img').forEach(function (img, i) {
+      gsap.fromTo(img, { xPercent: -4 }, {
+        xPercent: 4, ease: 'none',
+        scrollTrigger: {
+          trigger: section, start: 'top top',
+          end: function () { return '+=' + getDistance(); },
+          scrub: true, invalidateOnRefresh: true,
+        },
+      });
+    });
+
+    return tween;
+  }
+
+  /* =========================================================
+     14 · APERTURE — the scroll set-piece
+     ========================================================= */
+  function aperture() {
+    var svg = document.getElementById('apSvg');
+    var pin = document.getElementById('apPin');
+    if (!svg || !pin) return;
+
+    var N = 9;              // blade count — 9 gives a near-circular opening
+    var R_BARREL = 90;      // inner wall of the barrel, in viewBox units
+    var TAU = Math.PI * 2;
+
+    var clipPath = document.getElementById('apClipPath');
+    var ring = document.getElementById('apBladeRing');
+    var edge = document.getElementById('apEdge');
+    var seams = document.getElementById('apSeams');
+    var glints = document.getElementById('apGlints');
+    var knurl = document.getElementById('apKnurl');
+    var scaleG = document.getElementById('apScale');
+    var photo = document.getElementById('apPhoto');
+    var dof = document.getElementById('apDof');
+    var back = document.getElementById('apBack');
+
+    // One source of truth for the image: whatever the backdrop is using.
+    // Swap the backdrop <img> and the view through the iris follows.
+    if (photo && back) {
+      photo.setAttributeNS('http://www.w3.org/1999/xlink', 'href', back.currentSrc || back.src);
+      photo.setAttribute('href', back.currentSrc || back.src);
+      photo.setAttribute('opacity', '0.42');
+    }
+
+    // ---- static furniture -------------------------------------------------
+    var kd = '';
+    for (var k = 0; k < 84; k++) {
+      var ka = (k / 84) * TAU;
+      kd += 'M' + (93.6 * Math.cos(ka)).toFixed(2) + ' ' + (93.6 * Math.sin(ka)).toFixed(2) +
+            'L' + (97.4 * Math.cos(ka)).toFixed(2) + ' ' + (97.4 * Math.sin(ka)).toFixed(2);
+    }
+    knurl.innerHTML = '<path d="' + kd + '"></path>';
+
+    var STOPS = ['f/11', 'f/8', 'f/5.6', 'f/4', 'f/2.8', 'f/2', 'f/1.6'];
+    var sh = '';
+    STOPS.forEach(function (s, i) {
+      sh += '<text transform="rotate(' + (-42 + i * 14) + ') translate(0 -104)">' + s + '</text>';
+    });
+    scaleG.innerHTML = sh;
+
+    var gh = '';
+    for (var g = 0; g < N; g++) {
+      gh += '<path class="ap-glint" opacity="0" fill="#fff" ' +
+            'd="M0 -3.6L0.9 -0.9L3.6 0L0.9 0.9L0 3.6L-0.9 0.9L-3.6 0L-0.9 -0.9Z"></path>';
+    }
+    glints.innerHTML = gh;
+    var glintEls = glints.children;
+
+    seams.innerHTML = '<path></path>';
+    var seamPath = seams.firstElementChild;
+
+    var OUTER = 'M-90 0A90 90 0 1 0 90 0A90 90 0 1 0-90 0Z';
+
+    function pt(r, a) { return [r * Math.cos(a), r * Math.sin(a)]; }
+    function f(v) { return v.toFixed(2); }
+
+    // ---- the iris ---------------------------------------------------------
+    // Real blades sweep about pivots on the rim, so the opening both grows and
+    // rotates, and its edges bow outward (the blades are concave).
+    var state = { r: 2.6, phi: -0.62, open: 0 };
+
+    function draw() {
+      var r = state.r, phi = state.phi;
+      var arcR = r * 2.4;
+      var d = '';
+      for (var i = 0; i < N; i++) {
+        var p = pt(r, phi + i * TAU / N);
+        d += (i === 0 ? 'M' : 'A' + f(arcR) + ' ' + f(arcR) + ' 0 0 1 ') + f(p[0]) + ' ' + f(p[1]);
+      }
+      var p0 = pt(r, phi);
+      d += 'A' + f(arcR) + ' ' + f(arcR) + ' 0 0 1 ' + f(p0[0]) + ' ' + f(p0[1]) + 'Z';
+
+      clipPath.setAttribute('d', d);
+      edge.setAttribute('d', d);
+      ring.setAttribute('d', OUTER + d);   // evenodd punches the opening out
+
+      // each blade's trailing edge, spiralling back into the barrel
+      var sd = '';
+      for (var j = 0; j < N; j++) {
+        var av = phi + j * TAU / N;
+        var v = pt(r, av);
+        var c = pt((r + R_BARREL) * 0.55, av - 0.30);
+        var e = pt(R_BARREL, av - 0.72);
+        sd += 'M' + f(v[0]) + ' ' + f(v[1]) + 'Q' + f(c[0]) + ' ' + f(c[1]) + ' ' + f(e[0]) + ' ' + f(e[1]);
+      }
+      seamPath.setAttribute('d', sd);
+
+      for (var m = 0; m < N; m++) {
+        var am = phi + m * TAU / N;
+        var gp = pt(r, am);
+        glintEls[m].setAttribute('transform', 'translate(' + f(gp[0]) + ' ' + f(gp[1]) + ')');
+      }
+
+      knurl.setAttribute('transform', 'rotate(' + f(state.open * 26) + ')');
+      scaleG.setAttribute('transform', 'rotate(' + f(42 - state.open * 84) + ')');
+    }
+    draw();
+
+    var stopEl = document.getElementById('apStop');
+    var pctEl = document.getElementById('apPct');
+
+    var tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: pin,
+        start: 'top top',
+        end: '+=220%',
+        pin: true,
+        scrub: 0.7,
+        anticipatePin: 1,
+        // refreshes after the gallery pin above it, before everything below
+        refreshPriority: 1,
+        onUpdate: function (self) {
+          var eased = Math.min(1, self.progress / 0.72);
+          var idx = Math.min(STOPS.length - 1, Math.floor(eased * STOPS.length));
+          if (stopEl) stopEl.textContent = STOPS[idx];
+          if (pctEl) pctEl.textContent = Math.round(eased * 100);
+        },
+      },
+    });
+
+    tl.to(state, { r: 86, phi: 0, open: 1, ease: 'power2.inOut', duration: 1, onUpdate: draw }, 0)
+      // more light through a wider opening, and depth of field goes shallow
+      .to(photo, { attr: { opacity: 1 }, ease: 'none', duration: 1 }, 0)
+      .to(dof, { attr: { stdDeviation: 1.1 }, ease: 'none', duration: 1 }, 0)
+      .to('#apBack', { scale: 1.0, opacity: 1, ease: 'none', duration: 1 }, 0)
+      .fromTo('.ap-chip', { opacity: 0, scale: 0.86, y: 24 },
+        { opacity: 1, scale: 1, y: 0, ease: 'power3.out', duration: 0.35, stagger: 0.06 }, 0.08)
+      // blade edges catch the light once the iris is genuinely open
+      .to('.ap-glint', { opacity: 0.85, duration: 0.16, stagger: 0.015 }, 0.60)
+      .to('.ap-glint', { opacity: 0.30, duration: 0.22 }, 0.88)
+      // copy crossfade: intro -> payoff
+      .to('#apTitle', { opacity: 0, y: -18, duration: 0.18, ease: 'power2.in' }, 0.42)
+      .to('#apCopy', { opacity: 0, y: -14, duration: 0.18, ease: 'power2.in' }, 0.42)
+      .add(function () {
+        var t = document.getElementById('apTitle');
+        var c = document.getElementById('apCopy');
+        var l = document.getElementById('apLabel');
+        if (!t) return;
+        t.textContent = 'And the whole frame breathes.';
+        c.textContent = 'Dual-native ISO up to 12800, 10-bit color and a stacked sensor that reads out fast enough to kill rolling shutter.';
+        l.textContent = '(05) — Wide open';
+      }, 0.52)
+      .to('#apTitle', { opacity: 1, y: 0, duration: 0.2, ease: 'power2.out' }, 0.54)
+      .to('#apCopy', { opacity: 1, y: 0, duration: 0.2, ease: 'power2.out' }, 0.56)
+      // push into the glass on the way out
+      .to('#apStage', { scale: 1.18, ease: 'power1.in', duration: 0.3 }, 0.7)
+      .to('.ap-chip', { opacity: 0, duration: 0.2 }, 0.78);
+  }
+
+  /* =========================================================
+     15 · STATEMENT lines
+     ========================================================= */
+  function statement() {
+    var el = document.querySelector('[data-statement]');
+    if (!el) return;
+    var lines = el.querySelectorAll('.line-inner');
+    gsap.fromTo(lines, { yPercent: 108, rotate: 3 }, {
+      yPercent: 0, rotate: 0, duration: 1.4, ease: 'expo.out', stagger: 0.1,
+      scrollTrigger: { trigger: el, start: 'top 86%' },
+    });
+    gsap.to(el, {
+      yPercent: -10, ease: 'none',
+      scrollTrigger: { trigger: el.parentElement, start: 'top bottom', end: 'bottom top', scrub: true },
+    });
+  }
+
+  /* =========================================================
+     16 · FOOTER wordmark parallax
+     ========================================================= */
+  function footer() {
+    var word = document.getElementById('footerWord');
+    if (!word) return;
+    gsap.fromTo(word, { yPercent: 40, opacity: 0 }, {
+      yPercent: 0, opacity: 1, ease: 'none',
+      scrollTrigger: { trigger: word, start: 'top bottom', end: 'bottom bottom', scrub: true },
+    });
+  }
+
+  /* =========================================================
+     17 · PROGRESS BAR
+     ========================================================= */
+  function progress() {
+    gsap.to('#progress', {
+      scaleX: 1, ease: 'none',
+      scrollTrigger: { trigger: document.body, start: 'top top', end: 'bottom bottom', scrub: 0.3 },
+    });
+  }
+
+  /* =========================================================
+     18 · GRAIN drift
+     ========================================================= */
+  function grain() {
+    gsap.to('#grain', {
+      x: 12, y: -14, duration: 0.35, repeat: -1, yoyo: true, ease: 'none',
+      repeatRefresh: true,
+      modifiers: {
+        x: function () { return (Math.random() * 24 - 12) + 'px'; },
+        y: function () { return (Math.random() * 24 - 12) + 'px'; },
+      },
+    });
+  }
+
+  // Part 1 owns the boot gate (it waits for Tailwind + fonts before any
+  // layout is measured). Register here and let it call us.
+  window.__nivoPart2 = function () {
+    marquees();
+    horizontal();
+    aperture();
+    statement();
+    footer();
+    progress();
+    grain();
+
+    // final layout settle once images are in
+    window.addEventListener('load', function () { ScrollTrigger.refresh(); });
+  };
+})();
+</script>
+
+<script data-aura-video-controller="true">
+(function () {
+  function playVideo(video) {
+    var promise = video.play();
+    if (promise && typeof promise.catch === "function") {
+      promise.catch(function () {});
+    }
+  }
+
+  function setupVideo(video) {
+    if (video.__auraVideoReady === true) return;
+    video.__auraVideoReady = true;
+    video.removeAttribute("data-aura-video-ready");
+    video.removeAttribute("data-aura-video-played");
+    video.muted = true;
+    video.playsInline = true;
+
+    var preset = video.dataset.auraVideoPreset || "loop-in-view";
+    if (preset === "hover") {
+      video.addEventListener("mouseenter", function () {
+        playVideo(video);
+      });
+      video.addEventListener("mouseleave", function () {
+        video.pause();
+        video.currentTime = 0;
+      });
+      return;
+    }
+
+    if (!("IntersectionObserver" in window)) {
+      playVideo(video);
+      return;
+    }
+
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          if (preset === "play-once" && video.__auraVideoPlayed === true) {
+            return;
+          }
+          playVideo(video);
+        } else {
+          video.pause();
+        }
+      });
+    }, { threshold: 0.35 });
+
+    if (preset === "play-once") {
+      video.addEventListener("ended", function () {
+        video.__auraVideoPlayed = true;
+      }, { once: true });
+    }
+
+    observer.observe(video);
+  }
+
+  function setupVideos() {
+    document
+      .querySelectorAll("video[data-aura-video-preset]")
+      .forEach(setupVideo);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", setupVideos);
+  } else {
+    setupVideos();
+  }
+})();</script>
+
+    <!-- WARRANTYVAULT INTERACTIVE LOGIC & VIEW CONTROLLER -->
+    <script src="app.js"></script>
+  </body>
+</html>

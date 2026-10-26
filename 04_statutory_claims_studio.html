@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Statutory RMA Claims Engine &mdash; WarrantyVault Web App</title>
+  <meta name="description" content="Generate certified statutory RMA replacement letters citing UCC § 2-314, Magnuson-Moss, and EU Directive 2019/771.">
+
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Icons & Confetti -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      background-color: #060709;
+      color: #f1f5f9;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .nav-link-pill.active {
+      background: rgba(200, 255, 61, 0.15);
+      color: #c8ff3d;
+      border: 1px solid rgba(200, 255, 61, 0.3);
+    }
+    .hidden {
+      display: none !important;
+    }
+
+    /* Claims Studio Workspace Layout */
+    .claims-studio-grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+      text-align: left;
+    }
+    @media (max-width: 960px) {
+      .claims-studio-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .claims-config-panel {
+      background: rgba(13, 16, 23, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 24px;
+      backdrop-filter: blur(20px);
+    }
+    .claims-preview-panel {
+      background: rgba(13, 16, 23, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 24px;
+      backdrop-filter: blur(20px);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .retailer-esc-box {
+      margin-top: 24px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+    }
+    .retailer-esc-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #c8ff3d;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .retailer-esc-list {
+      font-size: 0.74rem;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.6;
+    }
+
+    .claim-letter-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 16px;
+    }
+    .preview-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #34d399;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      padding: 5px 12px;
+      border-radius: 9999px;
+      letter-spacing: 0.04em;
+    }
+    .letter-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-letter-action {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: #ffffff;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .btn-letter-action:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+      color: #ffffff;
+    }
+    .legal-document-sheet {
+      white-space: pre-wrap;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      line-height: 1.65;
+      color: #e2e8f0;
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 24px;
+      overflow-y: auto;
+      max-height: 520px;
+    }
+  </style>
+</head>
+<body class="demo-screen">
+
+  <!-- Studio Ambient Glow Mesh -->
+  <div class="ambient-glow-top"></div>
+  <div class="ambient-glow-bottom"></div>
+
+  <div class="app-layout-shell">
+    <!-- Left Sidepanel (Sidebar Navigation) -->
+    <aside class="app-sidebar" id="app-sidebar">
+      <div class="sidebar-header">
+        <a href="vault.html" class="sidebar-brand">
+          <div class="sidebar-brand-icon">
+            <i data-lucide="shield"></i>
+          </div>
+          <div class="sidebar-brand-text">
+            <span class="sidebar-brand-title">Warranty<span class="brand-light">Vault</span></span>
+            <span class="sidebar-brand-badge"><span class="pulse-dot"></span> WEB APP</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="sidebar-action-box">
+        <button type="button" class="btn-sidebar-add" id="btn-open-manual-nav">
+          <i data-lucide="plus"></i>
+          <span>Add Hardware</span>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav-container">
+        <div class="sidebar-group-label">Core Modules</div>
+        <a href="vault.html" class="sidebar-nav-link">
+          <i data-lucide="hard-drive"></i>
+          <span class="sidebar-nav-title">Hardware Vault</span>
+          <span class="sidebar-nav-badge">4</span>
+        </a>
+        <a href="scanner.html" class="sidebar-nav-link">
+          <i data-lucide="scan-line"></i>
+          <span class="sidebar-nav-title">Receipt Scanner</span>
+          <span class="sidebar-nav-badge blue">OCR</span>
+        </a>
+        <a href="claims.html" class="sidebar-nav-link active">
+          <i data-lucide="scale"></i>
+          <span class="sidebar-nav-title">Statutory Claims</span>
+          <span class="sidebar-nav-badge amber">LEGAL</span>
+        </a>
+        <a href="analytics.html" class="sidebar-nav-link">
+          <i data-lucide="bar-chart-3"></i>
+          <span class="sidebar-nav-title">Intelligence</span>
+          <span class="sidebar-nav-badge green">96</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button type="button" class="sidebar-sub-btn" id="btn-reset-demo" title="Restore sample demo hardware">
+          <i data-lucide="rotate-ccw"></i>
+          <span>Reset Demo Vault</span>
+        </button>
+        <a href="index.html" class="sidebar-sub-btn" title="Back to Landing Page">
+          <i data-lucide="arrow-left"></i>
+          <span>Landing Overview</span>
+        </a>
+        <div class="sidebar-user-block">
+          <div id="nav-user-container"></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Application Viewport -->
+    <div class="app-content-wrapper">
+      <header class="app-topbar">
+        <div class="app-breadcrumb-group">
+          <button type="button" class="sidebar-toggle-btn" id="btn-toggle-sidebar" aria-label="Toggle Navigation">
+            <i data-lucide="menu"></i>
+          </button>
+          <a href="index.html" class="breadcrumb-root">WarrantyVault</a>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-active"><i data-lucide="scale" class="w-3.5 h-3.5 text-amber-400"></i> Certified Statutory RMA Claims</span>
+        </div>
+        <div class="topbar-right-telemetry">
+          <span class="telemetry-live-pill">
+            <span class="pulse-dot"></span> Legal Shield Armed
+          </span>
+        </div>
+      </header>
+
+      <main class="app-viewport-body">
+    <div style="text-align: center; max-width: 900px; margin: 20px auto 36px auto;">
+      <div class="hero-kicker-pill">
+        <span class="kicker-tag">LEGAL SHIELD STUDIO</span>
+        <span class="kicker-text">Magnuson-Moss &bull; UCC &bull; EU Directive 2019/771</span>
+      </div>
+      <h1 class="hero-headline">
+        Certified Statutory RMA <span class="highlight-text">Claim Engine</span>.
+      </h1>
+      <p class="hero-description">
+        When retailers falsely reject warranty claims claiming 30-day return windows have expired, statutory consumer protection laws override them. Generate court-compliant legal replacement demands in 1 click.
+      </p>
+    </div>
+
+    <!-- Interactive Claims Studio Workspace -->
+    <div class="claims-studio-grid">
+      <!-- Left Config Sidebar -->
+      <div class="claims-config-panel">
+        <h3 class="sidebar-block-title" style="margin-bottom: 18px; font-size: 0.76rem;">
+          <i data-lucide="sliders" class="w-4 h-4 text-emerald-400"></i> DISPUTE CONFIGURATION
+        </h3>
+
+        <div class="form-control-group">
+          <label for="select-claim-device">Target Hardware Device *</label>
+          <select id="select-claim-device" class="nivo-select">
+            <!-- Dynamically populated from vault devices -->
+          </select>
+        </div>
+
+        <div class="form-control-group">
+          <label for="claim-defect-type">Observed Failure Defect *</label>
+          <select id="claim-defect-type" class="nivo-select">
+            <option value="battery">Battery degradation / Refuses to charge or hold power</option>
+            <option value="motherboard">Logic board / Motherboard premature component failure</option>
+            <option value="display">Display vertical line artifacting / Unresponsive panel</option>
+            <option value="thermal">Thermal runaway / Shuts down under ordinary load</option>
+            <option value="switch">Mechanical switch / Sensor failure without misuse</option>
+          </select>
+        </div>
+
+        <div class="form-control-group">
+          <label for="claim-defect-details">Defect Description &amp; Evidence</label>
+          <textarea id="claim-defect-details" class="nivo-textarea" rows="3">Device ceased functioning during standard, intended consumer usage without drop, moisture intrusion, or customer misuse.</textarea>
+        </div>
+
+        <div class="form-control-group">
+          <label for="claim-legal-jurisdiction">Applicable Consumer Protection Law</label>
+          <select id="claim-legal-jurisdiction" class="nivo-select">
+            <option value="us_ucc">United States: Magnuson-Moss Warranty Act &amp; UCC § 2-314 (Implied Merchantability)</option>
+            <option value="eu_2019">European Union: Directive (EU) 2019/771 (2-Year Statutory Conformity Guarantee)</option>
+            <option value="uk_cra">United Kingdom: Consumer Rights Act 2015 (6-Year Latent Defect Coverage)</option>
+          </select>
+        </div>
+
+        <div class="form-control-group">
+          <label for="claim-remedy-requested">Demanded Legal Remedy</label>
+          <select id="claim-remedy-requested" class="nivo-select">
+            <option value="replacement">Full Replacement with new unit (Zero cost to consumer)</option>
+            <option value="repair">Certified Manufacturer Repair Authorization (Covered labor &amp; parts)</option>
+            <option value="refund">Full Purchase Price Refund ($)</option>
+          </select>
+        </div>
+
+        <button type="button" class="btn-nivo-white w-full" id="btn-regenerate-letter" style="margin-top: 10px;">
+          <i data-lucide="refresh-cw"></i>
+          <span>Re-compile Legal Demand</span>
+        </button>
+
+        <!-- Retailer Escalation Quick Contacts -->
+        <div class="retailer-esc-box">
+          <div class="retailer-esc-title">
+            <i data-lucide="building-2"></i> ESCALATION DIRECTORY
+          </div>
+          <div class="retailer-esc-list">
+            <div>&bull; <strong>Apple Legal:</strong> legal-rma@apple.com</div>
+            <div>&bull; <strong>Sony Support:</strong> consumer-disputes@sony.com</div>
+            <div>&bull; <strong>Best Buy Escalations:</strong> corporatecare@bestbuy.com</div>
+            <div>&bull; <strong>Target Relations:</strong> guest.relations@target.com</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Letter Preview Panel -->
+      <div class="claims-preview-panel">
+        <div class="claim-letter-toolbar" style="margin-bottom: 16px;">
+          <span class="preview-badge"><i data-lucide="file-check"></i> CERTIFIED STATUTORY DEMAND DRAFT</span>
+          <div class="letter-actions">
+            <button class="btn-letter-action" id="btn-copy-claim" title="Copy text to clipboard">
+              <i data-lucide="copy"></i> Copy Text
+            </button>
+            <button class="btn-letter-action" id="btn-print-claim" title="Print formal demand letter">
+              <i data-lucide="printer"></i> Print / PDF
+            </button>
+            <a href="#" class="btn-letter-action" id="btn-email-claim" title="Open in mail client">
+              <i data-lucide="mail"></i> Email Notice
+            </a>
+          </div>
+        </div>
+
+        <div class="legal-document-sheet" id="letter-content" contenteditable="true" style="flex: 1; min-height: 480px;">
+          <!-- Dynamically populated by JS -->
+        </div>
+
+        <div class="letter-footer-notice" style="margin-top: 14px;">
+          <i data-lucide="info"></i>
+          <span>This statutory demand cites mandatory implied warranty protections under federal and state law. You can click anywhere inside the document to edit your contact info before sending.</span>
+        </div>
+      </div>
+    </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL: MANUAL DEVICE REGISTRATION -->
+  <div class="nivo-modal-backdrop hidden" id="modal-manual-backdrop">
+    <div class="nivo-modal-card">
+      <div class="modal-card-header">
+        <div class="modal-title-lockup">
+          <div class="modal-icon-badge">
+            <i data-lucide="plus-circle"></i>
+          </div>
+          <div>
+            <h3 class="modal-heading">Register Device to Vault</h3>
+            <p class="modal-sub">Add consumer hardware to track countdown timers</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" id="btn-close-manual">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <form id="form-manual-entry">
+        <div class="modal-form-body">
+          <div class="form-control-group">
+            <label for="input-product-name">Product Name & Model *</label>
+            <input type="text" id="input-product-name" class="nivo-input" placeholder="e.g. Sony WH-1000XM5 Wireless Headphones" required>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-control-group flex-1">
+              <label for="input-brand">Brand / Manufacturer *</label>
+              <input type="text" id="input-brand" class="nivo-input" placeholder="e.g. Sony" required>
+            </div>
+            <div class="form-control-group flex-1">
+              <label for="input-category">Device Category</label>
+              <select id="input-category" class="nivo-select">
+                <option value="Audio Gear">Audio Gear</option>
+                <option value="Laptop Workstation">Laptop Workstation</option>
+                <option value="Mobile Device">Mobile Device</option>
+                <option value="Kitchen Appliance">Kitchen Appliance</option>
+                <option value="Home Electronics">Home Electronics</option>
+                <option value="Gaming Hardware">Gaming Hardware</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-control-group flex-1">
+              <label for="input-retailer">Purchased From (Retailer) *</label>
+              <input type="text" id="input-retailer" class="nivo-input" placeholder="e.g. Best Buy #0492" required>
+            </div>
+            <div class="form-control-group flex-1">
+              <label for="input-purchase-date">Purchase Date *</label>
+              <input type="date" id="input-purchase-date" class="nivo-input" required>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-control-group flex-1">
+              <label for="input-warranty-months">Warranty Duration *</label>
+              <select id="input-warranty-months" class="nivo-select">
+                <option value="12">12 Months (Standard 1 Year)</option>
+                <option value="24">24 Months (2 Years EU / Extended)</option>
+                <option value="36">36 Months (3 Years AppleCare / Pro)</option>
+                <option value="6">6 Months (Refurbished)</option>
+                <option value="60">60 Months (5 Years Major Appliance)</option>
+              </select>
+            </div>
+            <div class="form-control-group flex-1">
+              <label for="input-price">Purchase Price ($) *</label>
+              <input type="number" id="input-price" class="nivo-input" placeholder="e.g. 399.99" step="0.01" required>
+            </div>
+          </div>
+
+          <div class="form-control-group">
+            <label for="input-serial">Serial Number / IMEI</label>
+            <input type="text" id="input-serial" class="nivo-input" placeholder="e.g. SN-8849201-X">
+          </div>
+        </div>
+
+        <div class="modal-actions-footer">
+          <button type="button" class="btn-nivo-ghost" id="btn-cancel-manual">Cancel</button>
+          <button type="submit" class="btn-nivo-white">
+            <i data-lucide="shield-check"></i> Register to Vault
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Stack -->
+  <div class="nivo-toast-container" id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="auth.js"></script>
+  <script src="app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      WarrantyAuth.requireAuth();
+
+      // Populate Device Selector
+      const devSelect = document.getElementById('select-claim-device');
+      let devList = [];
+      if (window.WarrantyApp && window.WarrantyApp.getDevices) {
+        devList = window.WarrantyApp.getDevices();
+      }
+      if (!devList || devList.length === 0) {
+        const stored = localStorage.getItem('warranty_vault_nivo_v1');
+        try { devList = stored ? JSON.parse(stored) : []; } catch (e) {}
+      }
+
+      function updateActiveDevice(id) {
+        const target = devList.find(d => d.id === id) || devList[0];
+        if (target && window.WarrantyApp && window.WarrantyApp.setActiveClaimDevice) {
+          window.WarrantyApp.setActiveClaimDevice(target);
+          if (window.generateLegalLetter) window.generateLegalLetter();
+        } else if (target && window.openClaimModal) {
+          window.openClaimModal(target.id);
+        }
+      }
+
+      if (devSelect && devList && devList.length > 0) {
+        devSelect.innerHTML = devList.map(d => `<option value="${d.id}">${d.name} (${d.brand}) &bull; $${Number(d.price).toFixed(2)}</option>`).join('');
+        updateActiveDevice(devList[0].id);
+
+        devSelect.addEventListener('change', (e) => {
+          updateActiveDevice(e.target.value);
+        });
+      }
+
+      // Wire up all claim configuration inputs for real-time letter updates
+      ['claim-defect-type', 'claim-defect-details', 'claim-legal-jurisdiction', 'claim-remedy-requested'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('change', () => {
+            if (window.generateLegalLetter) window.generateLegalLetter();
+          });
+          el.addEventListener('input', () => {
+            if (window.generateLegalLetter) window.generateLegalLetter();
+          });
+        }
+      });
+
+      const regenBtn = document.getElementById('btn-regenerate-letter');
+      if (regenBtn) {
+        regenBtn.addEventListener('click', () => {
+          if (window.generateLegalLetter) window.generateLegalLetter();
+        });
+      }
+
+      // Copy Letter to Clipboard
+      const copyBtn = document.getElementById('btn-copy-claim');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', async () => {
+          const letter = document.getElementById('letter-content');
+          if (letter) {
+            try {
+              await navigator.clipboard.writeText(letter.innerText);
+              copyBtn.innerHTML = '<i data-lucide="check"></i> Copied!';
+              if (window.lucide) lucide.createIcons();
+              setTimeout(() => {
+                copyBtn.innerHTML = '<i data-lucide="copy"></i> Copy Text';
+                if (window.lucide) lucide.createIcons();
+              }, 2000);
+            } catch (err) {
+              alert('Copied letter to clipboard!');
+            }
+          }
+        });
+      }
+
+      // Print Letter
+      const printBtn = document.getElementById('btn-print-claim');
+      if (printBtn) {
+        printBtn.addEventListener('click', () => {
+          window.print();
+        });
+      }
+
+      if (window.lucide) lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WarrantyVault™ — Interactive Screens Hub & Screen Catalog</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      background: #020205;
+      color: #e2e8f0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+    .hub-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 5rem;
+    }
+    .hub-header {
+      text-align: center;
+      margin-bottom: 3.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 2.5rem;
+    }
+    .hub-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.85rem;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #818cf8;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 1.25rem;
+    }
+    .hub-title {
+      font-size: 2.75rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin: 0 0 1rem;
+      background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hub-subtitle {
+      font-size: 1.15rem;
+      color: #94a3b8;
+      max-width: 700px;
+      margin: 0 auto 1.5rem;
+      line-height: 1.6;
+    }
+    .hub-actions {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .hub-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.65rem;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .hub-btn-primary {
+      background: #4f46e5;
+      color: white;
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
+    }
+    .hub-btn-primary:hover {
+      background: #4338ca;
+      transform: translateY(-2px);
+    }
+    .hub-btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #f1f5f9;
+    }
+    .hub-btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-2px);
+    }
+    .hub-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 2rem;
+    }
+    .hub-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 1rem;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .hub-card:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+    }
+    .hub-card-index {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #6366f1;
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      padding: 0.25rem 0.6rem;
+      border-radius: 0.35rem;
+      align-self: flex-start;
+      margin-bottom: 1rem;
+    }
+    .hub-card-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin: 0 0 0.5rem;
+      color: #ffffff;
+    }
+    .hub-card-desc {
+      font-size: 0.95rem;
+      color: #94a3b8;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+      flex-grow: 1;
+    }
+    .hub-card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 1.5rem;
+    }
+    .hub-card-tag {
+      font-size: 0.75rem;
+      padding: 0.2rem 0.55rem;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 0.3rem;
+      color: #cbd5e1;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .hub-card-launch {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 1.25rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .hub-card-link {
+      font-weight: 600;
+      color: #818cf8;
+      text-decoration: none;
+      font-size: 0.95rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .hub-card-link:hover {
+      color: #a5b4fc;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="hub-container">
+    <header class="hub-header">
+      <div class="hub-badge">🛡️ Architecture Showcase • Complete Screen Hub</div>
+      <h1 class="hub-title">WarrantyVault™ Screen Catalog</h1>
+      <p class="hub-subtitle">
+        Explore every production screen, autonomous statutory engine, and telemetry view. Built with modular web architecture and responsive left-sidepanel navigation.
+      </p>
+      <div class="hub-actions">
+        <a href="index.html" class="hub-btn hub-btn-primary">🌐 Launch Main Showcase</a>
+        <a href="login.html" class="hub-btn hub-btn-secondary">⚡ 1-Click Judge Login</a>
+        <a href="vault.html" class="hub-btn hub-btn-secondary">🔒 Hardware Vault</a>
+      </div>
+    </header>
+
+    <div class="hub-grid">
+      <!-- Screen 00 -->
+      <div class="hub-card">
+        <span class="hub-card-index">SCREEN 00</span>
+        <h3 class="hub-card-title">Biometric Auth & Demo Gateway</h3>
+        <p class="hub-card-desc">
+          High-security authentication gateway featuring instant 1-click Judge Pass as Alex Morgan. Protects vault routes with persistent session management.
+        </p>
+        <div class="hub-card-tags">
+          <span class="hub-card-tag">auth.js</span>
+          <span class="hub-card-tag">sessionStorage</span>
+          <span class="hub-card-tag">1-Click Demo Pass</span>
+        </div>
+        <div class="hub-card-launch">
+          <span style="font-size: 0.85rem; color: #64748b;">File: 00_auth_login_signup.html</span>
+          <a href="00_auth_login_signup.html" class="hub-card-link">Open Screen ➔</a>
+        </div>
+      </div>
+
+      <!-- Screen 01 -->
+      <div class="hub-card">
+        <span class="hub-card-index">SCREEN 01</span>
+        <h3 class="hub-card-title">Product Showcase Landing Page</h3>
+        <p class="hub-card-desc">
+          Public-facing marketing experience with interactive live demo simulator, ROI calculator, statutory law matrix, and smooth micro-animations.
+        </p>
+        <div class="hub-card-tags">
+          <span class="hub-card-tag">Hero Showcase</span>
+          <span class="hub-card-tag">Interactive Sandbox</span>
+          <span class="hub-card-tag">Pricing Matrix</span>
+        </div>
+        <div class="hub-card-launch">
+          <span style="font-size: 0.85rem; color: #64748b;">File: 01_landing_page_full.html</span>
+          <a href="01_landing_page_full.html" class="hub-card-link">Open Screen ➔</a>
+        </div>
+      </div>
+
+      <!-- Screen 02 -->
+      <div class="hub-card">
+        <span class="hub-card-index">SCREEN 02</span>
+        <h3 class="hub-card-title">Protected Hardware Vault</h3>
+        <p class="hub-card-desc">
+          Executive hardware defense telemetry displaying live millisecond countdowns, asset valuations, serial number records, and statutory countdown gauges.
+        </p>
+        <div class="hub-card-tags">
+          <span class="hub-card-tag">Real-Time Timers</span>
+          <span class="hub-card-tag">4 Tracked Devices</span>
+          <span class="hub-card-tag">Sidepanel Nav</span>
+        </div>
+        <div class="hub-card-launch">
+          <span style="font-size: 0.85rem; color: #64748b;">File: 02_hardware_vault.html</span>
+          <a href="02_hardware_vault.html" class="hub-card-link">Open Screen ➔</a>
+        </div>
+      </div>
+
+      <!-- Screen 03 -->
+      <div class="hub-card">
+        <span class="hub-card-index">SCREEN 03</span>
+        <h3 class="hub-card-title">Optical Receipt Scanner & OCR</h3>
+        <p class="hub-card-desc">
+          Multi-format receipt dropzone with animated matrix OCR terminal. Extracts device model, serial number, purchase date, and retailer in 2.3 seconds.
+        </p>
+        <div class="hub-card-tags">
+          <span class="hub-card-tag">OCR Parsing</span>
+          <span class="hub-card-tag">Terminal Log</span>
+          <span class="hub-card-tag">Instant Presets</span>
+        </div>
+        <div class="hub-card-launch">
+          <span style="font-size: 0.85rem; color: #64748b;">File: 03_optical_receipt_scanner.html</span>
+          <a href="03_optical_receipt_scanner.html" class="hub-card-link">Open Screen ➔</a>
+        </div>
+      </div>
+
+      <!-- Screen 04 -->
+      <div class="hub-card">
+        <span class="hub-card-index">SCREEN 04</span>
+        <h3 class="hub-card-title">Statutory Claims Studio</h3>
+        <p class="hub-card-desc">
+          Autonomous RMA demand letter engine citing UCC § 2-314, Magnuson-Moss 15 U.S.C. § 2301, and EU Directive 2019/771 with 1-click clipboard dispatch.
+        </p>
+        <div class="hub-card-tags">
+          <span class="hub-card-tag">Statutory Precedents</span>
+          <span class="hub-card-tag">Audit Tracking</span>
+          <span class="hub-card-tag">Legal Teeth</span>
+        </div>
+        <div class="hub-card-launch">
+          <span style="font-size: 0.85rem; color: #64748b;">File: 04_statutory_claims_studio.html</span>
+          <a href="04_statutory_claims_studio.html" class="hub-card-link">Open Screen ➔</a>
+        </div>
+      </div>
+
+      <!-- Screen 05 -->
+      <div class="hub-card">
+        <span class="hub-card-index">SCREEN 05</span>
+        <h3 class="hub-card-title">Warranty Defense Intelligence</h3>
+        <p class="hub-card-desc">
+          Comprehensive defense health analytics (96/100 score), statutory protection ratios, 12-month expiration horizon radar, and portfolio capital preservation.
+        </p>
+        <div class="hub-card-tags">
+          <span class="hub-card-tag">Health Score 96/100</span>
+          <span class="hub-card-tag">Capital ROI</span>
+          <span class="hub-card-tag">Horizon Radar</span>
+        </div>
+        <div class="hub-card-launch">
+          <span style="font-size: 0.85rem; color: #64748b;">File: 05_warranty_defense_intelligence.html</span>
+          <a href="05_warranty_defense_intelligence.html" class="hub-card-link">Open Screen ➔</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
