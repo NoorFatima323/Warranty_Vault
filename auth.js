@@ -62,6 +62,7 @@
     if (!container) return;
 
     const user = getAuthUser();
+    const pfx = window.location.pathname.includes('/frontend/') ? '' : 'frontend/';
     if (user) {
       container.innerHTML = `
         <div class="user-chip-dropdown" id="user-chip-menu">
@@ -77,10 +78,10 @@
               <span class="dropdown-plan">${user.plan}</span>
             </div>
             <div class="dropdown-divider"></div>
-            <a href="vault.html" class="dropdown-item"><i data-lucide="hard-drive"></i> Hardware Vault</a>
-            <a href="scanner.html" class="dropdown-item"><i data-lucide="scan-line"></i> Receipt Scanner</a>
-            <a href="claims.html" class="dropdown-item"><i data-lucide="scale"></i> Statutory Claims</a>
-            <a href="analytics.html" class="dropdown-item"><i data-lucide="bar-chart-3"></i> Intelligence & Risk</a>
+            <a href="${pfx}vault.html" class="dropdown-item"><i data-lucide="hard-drive"></i> Hardware Vault</a>
+            <a href="${pfx}scanner.html" class="dropdown-item"><i data-lucide="scan-line"></i> Receipt Scanner</a>
+            <a href="${pfx}claims.html" class="dropdown-item"><i data-lucide="scale"></i> Statutory Claims</a>
+            <a href="${pfx}analytics.html" class="dropdown-item"><i data-lucide="bar-chart-3"></i> Intelligence & Risk</a>
             <div class="dropdown-divider"></div>
             <button type="button" class="dropdown-item text-red" id="btn-logout-action">
               <i data-lucide="log-out"></i> Sign Out
@@ -114,13 +115,8 @@
         });
       }
     } else {
-      container.innerHTML = `
-        <a href="login.html" class="btn-nivo-ghost" style="text-decoration: none;">
-          <i data-lucide="log-in"></i>
-          <span>Sign In</span>
-        </a>
-      `;
-      if (window.lucide) lucide.createIcons();
+      // Unauthenticated: Keep container empty, primary navbar button handles Sign In
+      container.innerHTML = '';
     }
   }
 

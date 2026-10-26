@@ -186,16 +186,14 @@ background: currentColor; vertical-align: -0.12em; opacity: 0; }
     <script>
       // Web App Gateway: Redirects to login if unauthenticated, or directly to vault if authenticated
       function openWarrantyApp(target) {
-        var page = target || 'vault.html';
-        if (window.WarrantyAuth) {
-          WarrantyAuth.checkAuthAndGo(page);
+        var isFrontend = window.location.pathname.includes('/frontend/');
+        var page = target || (isFrontend ? 'vault.html' : 'frontend/vault.html');
+        var loginPage = isFrontend ? 'login.html' : 'frontend/login.html';
+        var user = localStorage.getItem('warranty_vault_auth_user');
+        if (user) {
+          window.location.href = page;
         } else {
-          var user = localStorage.getItem('warranty_vault_auth_user');
-          if (user) {
-            window.location.href = page;
-          } else {
-            window.location.href = 'login.html?redirect=' + encodeURIComponent(page);
-          }
+          window.location.href = loginPage + '?redirect=' + encodeURIComponent(page);
         }
       }
       function closeWarrantyApp() {
@@ -204,7 +202,7 @@ background: currentColor; vertical-align: -0.12em; opacity: 0; }
 
       window.addEventListener('load', function() {
         if (window.location.hash === '#demo') {
-          openWarrantyApp('vault.html');
+          openWarrantyApp();
         }
       });
     </script>
@@ -283,10 +281,10 @@ background: currentColor; vertical-align: -0.12em; opacity: 0; }
 
     <div class="flex items-center gap-3">
       <div id="nav-user-container"></div>
-      <button type="button" data-magnetic="" data-cursor="Demo" onclick="openWarrantyApp()" class="btn-open-demo nav-cta hidden items-center gap-2.5 overflow-hidden rounded-full bg-white px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink transition-all duration-300 hover:bg-acid hover:scale-105 hover:shadow-[0_0_24px_rgba(200,255,61,0.5)] sm:inline-flex cursor-pointer">
-        <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-        <span class="btn-flip relative block"><span class="block">Try Live Demo</span></span>
-        <i data-lucide="arrow-up-right" class="h-3.5 w-3.5" stroke-width="2"></i>
+      <button type="button" data-magnetic="" data-cursor="Sign In" onclick="openWarrantyApp()" class="btn-open-demo nav-cta hidden items-center gap-2.5 overflow-hidden rounded-full bg-white px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink transition-all duration-300 hover:bg-acid hover:scale-105 hover:shadow-[0_0_24px_rgba(200,255,61,0.5)] sm:inline-flex cursor-pointer">
+        <i data-lucide="log-in" class="h-3.5 w-3.5 text-ink" stroke-width="2"></i>
+        <span class="btn-flip relative block"><span class="block">Sign In</span></span>
+        <i data-lucide="arrow-right" class="h-3.5 w-3.5" stroke-width="2"></i>
       </button>
       <button id="menuButton" type="button" class="nav-ink grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-white/5 text-white backdrop-blur-md md:hidden" aria-label="Open menu" aria-expanded="false">
         <i data-lucide="menu" class="h-5 w-5" stroke-width="1.5"></i>
@@ -301,7 +299,7 @@ background: currentColor; vertical-align: -0.12em; opacity: 0; }
       <a href="#gallery" class="rounded-xl px-4 py-3 text-sm hover:bg-white/10">Receipt AI</a>
       <a href="#tech" class="rounded-xl px-4 py-3 text-sm hover:bg-white/10">Statutory</a>
       <a href="#faq" class="rounded-xl px-4 py-3 text-sm hover:bg-white/10">FAQ</a>
-      <button onclick="openWarrantyApp()" class="mt-3 rounded-xl bg-acid px-4 py-3 text-center text-sm font-semibold text-ink">Try Live Demo</button>
+      <button onclick="openWarrantyApp()" class="mt-3 rounded-xl bg-acid px-4 py-3 text-center text-sm font-semibold text-ink">Sign In</button>
     </div>
   </div>
 </header>
@@ -333,7 +331,8 @@ background: currentColor; vertical-align: -0.12em; opacity: 0; }
         
         <div class="mt-8 flex flex-wrap items-center gap-3" data-hero-el="">
           <button type="button" onclick="openWarrantyApp()" class="btn-open-demo group inline-flex items-center gap-2.5 rounded-full bg-white px-7 py-3.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink transition-all hover:bg-acid hover:scale-105 hover:shadow-[0_0_30px_rgba(200,255,61,0.5)] cursor-pointer">
-            <span>🚀 Launch Live Demo</span>
+            <i data-lucide="log-in" class="h-4 w-4 text-ink" stroke-width="2"></i>
+            <span>Sign In to Hardware Vault</span>
             <i data-lucide="arrow-right" class="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" stroke-width="2"></i>
           </button>
           <a href="#products" data-magnetic="" data-cursor="Vault" class="group inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 py-3.5 text-[11px] font-medium uppercase tracking-[0.16em] text-white backdrop-blur transition-colors hover:bg-white hover:text-ink">
