@@ -1187,9 +1187,9 @@ button:active { transform: scale(0.98); }
 .nivo-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(3, 4, 7, 0.88);
+  background: rgba(3, 4, 7, 0.92);
   backdrop-filter: blur(14px);
-  z-index: 100;
+  z-index: 99999;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2202,3 +2202,23 @@ button:active { transform: scale(0.98); }
   }
 }
 
+/* ==================== PRODUCT VIDEO REEL MODAL ==================== */
+.modal-video-container {
+  max-width: 960px;
+  width: 95%;
+  border: 1px solid rgba(200, 255, 61, 0.25);
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.9), 0 0 30px rgba(200, 255, 61, 0.1);
+}
+@keyframes scanSweep {
+  0% { top: 20%; opacity: 0.3; }
+  50% { top: 80%; opacity: 1; }
+  100% { top: 20%; opacity: 0.3; }
+}
+.reel-scanner-beam {
+  animation: scanSweep 2.2s ease-in-out infinite;
+}
+.reel-ch-btn.active {
+  background: rgba(200, 255, 61, 0.2) !important;
+  color: #c8ff3d !important;
+  border-color: rgba(200, 255, 61, 0.4) !important;
+}
