@@ -224,161 +224,160 @@
     </div>
   </div>
 
-  <!-- MODAL: STATUTORY LEGAL CLAIM GENERATOR -->
+  <!-- ==================== MODAL 1: 1-CLICK STATUTORY RMA CLAIM ENGINE ==================== -->
   <div class="nivo-modal-backdrop hidden" id="modal-claim-backdrop">
-    <div class="nivo-modal-card wide">
-      <div class="modal-card-header">
-        <div class="modal-title-lockup">
-          <div class="modal-icon-badge amber">
-            <i data-lucide="scale"></i>
-          </div>
+    <div class="nivo-modal-box modal-large">
+      <div class="modal-top">
+        <div class="modal-headline-group">
+          <div class="modal-status-icon amber"><i data-lucide="scale"></i></div>
           <div>
-            <h3 class="modal-heading">Certified Statutory RMA Demand Generator</h3>
-            <p class="modal-sub" id="claim-target-summary">Generating legal replacement claim letter...</p>
+            <h3 class="modal-h3">Certified Statutory RMA Demand Generator</h3>
+            <p class="modal-p">Certified legal demand letter citing statutory consumer protection and merchantability laws</p>
           </div>
         </div>
-        <button type="button" class="modal-close-btn" id="btn-close-claim">
-          <i data-lucide="x"></i>
-        </button>
+        <button class="modal-close" id="btn-close-claim"><i data-lucide="x"></i></button>
       </div>
 
-      <div class="claim-modal-body">
-        <div class="claim-settings-sidebar">
-          <h4 class="sidebar-block-title">DISPUTE CONFIGURATION</h4>
+      <div class="modal-split-body">
+        <!-- Left: Defect & Claim Controls -->
+        <div class="claim-options-column">
+          <div class="claim-target-hardware-pill" id="claim-target-summary">
+            <!-- Dynamically populated -->
+          </div>
 
           <div class="form-control-group">
-            <label for="claim-defect-type">Observed Failure Defect *</label>
+            <label for="claim-defect-type">Defect Classification</label>
             <select id="claim-defect-type" class="nivo-select">
               <option value="battery">Battery degradation / Refuses to charge or hold power</option>
-              <option value="motherboard">Logic board / Motherboard premature component failure</option>
-              <option value="display">Display vertical line artifacting / Unresponsive panel</option>
-              <option value="thermal">Thermal runaway / Shuts down under ordinary load</option>
-              <option value="switch">Mechanical switch / Sensor failure without misuse</option>
+              <option value="shutdown">Sudden unexpected shutdowns / Motherboard power delivery failure</option>
+              <option value="audio_display">Severe audio distortion / Display flickering & dead pixels</option>
+              <option value="hinge_build">Hinge fracture / Premature structural plastic fatigue</option>
+              <option value="firmware">Bricked following official manufacturer firmware update</option>
+              <option value="intermittent">Intermittent Wi-Fi / Bluetooth chip failure</option>
+              <option value="other">General unprompted internal hardware failure (Non-accidental)</option>
             </select>
           </div>
 
           <div class="form-control-group">
-            <label for="claim-defect-details">Defect Description &amp; Symptoms</label>
-            <textarea id="claim-defect-details" class="nivo-textarea" rows="3">Device ceased functioning during standard, intended consumer usage without drop, moisture intrusion, or customer misuse.</textarea>
+            <label for="claim-defect-details">Defect Description & Symptoms</label>
+            <textarea id="claim-defect-details" class="nivo-textarea" rows="3" placeholder="Describe how the device stopped working under standard, intended consumer usage..."></textarea>
           </div>
 
           <div class="form-control-group">
             <label for="claim-legal-jurisdiction">Applicable Consumer Protection Law</label>
             <select id="claim-legal-jurisdiction" class="nivo-select">
-              <option value="us_ucc">United States: Magnuson-Moss Warranty Act &amp; UCC § 2-314 (Implied Merchantability)</option>
-              <option value="eu_2019">European Union: Directive (EU) 2019/771 (2-Year Statutory Conformity Guarantee)</option>
-              <option value="uk_cra">United Kingdom: Consumer Rights Act 2015 (6-Year Latent Defect Coverage)</option>
+              <option value="US">United States: Magnuson-Moss Warranty Act & UCC § 2-314 (Implied Merchantability)</option>
+              <option value="UK_EU">UK & EU: Consumer Rights Act 2015 & Directive 2019/771 (2-Year Statutory Conformance)</option>
+              <option value="GLOBAL">International: Fair Trading Statutory Framework for Non-Conforming Goods</option>
             </select>
           </div>
 
           <div class="form-control-group">
             <label for="claim-remedy-requested">Demanded Legal Remedy</label>
             <select id="claim-remedy-requested" class="nivo-select">
-              <option value="replacement">Full Replacement with new unit (Zero cost to consumer)</option>
-              <option value="repair">Certified Manufacturer Repair Authorization (Covered labor & parts)</option>
-              <option value="refund">Full Purchase Price Refund ($)</option>
+              <option value="replace">Full Replacement with new unit (Zero cost to consumer)</option>
+              <option value="repair">Expedited OEM Certified Repair with prepaid return shipping label</option>
+              <option value="refund">Full Purchase Price Refund to original payment method</option>
             </select>
           </div>
 
           <button type="button" class="btn-nivo-white w-full" id="btn-regenerate-letter">
-            <i data-lucide="refresh-cw"></i>
-            <span>Update Formal Demand Letter</span>
+            <i data-lucide="refresh-cw"></i> Update Formal Demand Letter
           </button>
         </div>
 
-        <div class="claim-letter-preview-pane">
-          <div class="claim-letter-toolbar">
-            <span class="preview-badge"><i data-lucide="file-check"></i> CERTIFIED LEGAL DEMAND DRAFT</span>
-            <div class="letter-actions">
-              <button class="btn-letter-action" id="btn-copy-claim" title="Copy text to clipboard">
+        <!-- Right: Certified Legal Letterhead Preview -->
+        <div class="claim-document-column">
+          <div class="document-toolbar">
+            <div class="document-badge">
+              <i data-lucide="award"></i> Certified Legal Tone
+            </div>
+            <div class="document-actions">
+              <button class="doc-btn" id="btn-copy-claim" title="Copy text to clipboard">
                 <i data-lucide="copy"></i> Copy Text
               </button>
-              <button class="btn-letter-action" id="btn-print-claim" title="Print formal demand letter">
+              <button class="doc-btn" id="btn-print-claim" title="Print or save as PDF">
                 <i data-lucide="printer"></i> Print / PDF
               </button>
-              <a href="#" class="btn-letter-action" id="btn-email-claim" title="Open in mail client">
-                <i data-lucide="mail"></i> Email Claim
+              <a href="#" class="doc-btn email-highlight" id="btn-email-claim" target="_blank" title="Open in Email App">
+                <i data-lucide="mail"></i> Email RMA
               </a>
             </div>
           </div>
 
-          <div class="legal-document-sheet" id="letter-content" contenteditable="true">
-            <!-- Dynamically populated by app.js -->
+          <div class="document-paper-container">
+            <div class="document-paper-content" id="letter-content" contenteditable="true" spellcheck="false">
+              <!-- Dynamically populated via app.js -->
+            </div>
           </div>
-          <div class="letter-footer-notice">
-            <i data-lucide="info"></i>
-            <span>Tip: You can click inside the document to customize your name, address, or details before sending.</span>
+          <div class="document-footer-hint">
+            <i data-lucide="info"></i> Tip: You can click inside the document to customize your name, address, or details before sending.
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- MODAL: THERMAL STORE RECEIPT VIEWER -->
+  <!-- ==================== MODAL 2: DIGITAL PROOF-OF-PURCHASE RECEIPT ==================== -->
   <div class="nivo-modal-backdrop hidden" id="modal-receipt-backdrop">
-    <div class="nivo-modal-card receipt-card-size">
-      <div class="modal-card-header">
-        <div class="modal-title-lockup">
-          <div class="modal-icon-badge">
-            <i data-lucide="receipt"></i>
-          </div>
+    <div class="nivo-modal-box modal-compact">
+      <div class="modal-top">
+        <div class="modal-headline-group">
+          <div class="modal-status-icon blue"><i data-lucide="receipt"></i></div>
           <div>
-            <h3 class="modal-heading">Optical Store Receipt Proof</h3>
-            <p class="modal-sub">Certified thermal receipt &amp; purchase verification</p>
+            <h3 class="modal-h3">Verified Proof of Purchase</h3>
+            <p class="modal-p">Stored digital store receipt with cryptographic verification stamp</p>
           </div>
         </div>
-        <button type="button" class="modal-close-btn" id="btn-close-receipt">
-          <i data-lucide="x"></i>
-        </button>
+        <button class="modal-close" id="btn-close-receipt"><i data-lucide="x"></i></button>
       </div>
 
-      <div class="modal-receipt-body">
-        <div class="skeuomorphic-thermal-paper" id="receipt-paper-render">
-          <!-- Dynamically populated by app.js -->
+      <div class="modal-body-scroll text-center">
+        <!-- Rendered Store Receipt -->
+        <div class="nivo-thermal-receipt" id="receipt-paper-render">
+          <!-- Injected via app.js -->
         </div>
-      </div>
 
-      <div class="modal-receipt-footer">
-        <button type="button" class="btn-nivo-ghost" id="btn-download-receipt-png">
-          <i data-lucide="printer"></i> Print Receipt Proof
-        </button>
-        <button type="button" class="btn-nivo-white" id="btn-claim-from-receipt">
-          <i data-lucide="scale"></i> Proceed to Auto-Claim
-        </button>
+        <div class="receipt-actions-cluster">
+          <button class="btn-nivo-ghost" id="btn-download-receipt-png">
+            <i data-lucide="printer"></i> Print Receipt Proof
+          </button>
+          <button class="btn-nivo-white" id="btn-claim-from-receipt">
+            <i data-lucide="file-text"></i> Proceed to Auto-Claim
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- MODAL: MANUAL DEVICE REGISTRATION -->
+  <!-- ==================== MODAL 3: MANUAL DEVICE ENTRY ==================== -->
   <div class="nivo-modal-backdrop hidden" id="modal-manual-backdrop">
-    <div class="nivo-modal-card">
-      <div class="modal-card-header">
-        <div class="modal-title-lockup">
-          <div class="modal-icon-badge">
-            <i data-lucide="plus-circle"></i>
-          </div>
+    <div class="nivo-modal-box modal-compact">
+      <div class="modal-top">
+        <div class="modal-headline-group">
+          <div class="modal-status-icon green"><i data-lucide="plus-circle"></i></div>
           <div>
-            <h3 class="modal-heading">Register Device to Vault</h3>
-            <p class="modal-sub">Add consumer hardware to track countdown timers</p>
+            <h3 class="modal-h3">Register Hardware Device</h3>
+            <p class="modal-p">Enter specifications manually from box or paper invoice</p>
           </div>
         </div>
-        <button type="button" class="modal-close-btn" id="btn-close-manual">
-          <i data-lucide="x"></i>
-        </button>
+        <button class="modal-close" id="btn-close-manual"><i data-lucide="x"></i></button>
       </div>
 
       <form id="form-manual-entry">
-        <div class="modal-form-body">
-          <div class="form-control-group">
-            <label for="input-product-name">Product Name & Model *</label>
-            <input type="text" id="input-product-name" class="nivo-input" placeholder="e.g. Sony WH-1000XM5 Wireless Headphones" required>
+        <div class="modal-body-scroll">
+          <div class="form-row-2">
+            <div class="form-control-group flex-1">
+              <label for="input-product-name">Product Name *</label>
+              <input type="text" id="input-product-name" class="nivo-input" placeholder="e.g. Sony WH-1000XM5" required>
+            </div>
+            <div class="form-control-group flex-1">
+              <label for="input-brand">Brand / Manufacturer *</label>
+              <input type="text" id="input-brand" class="nivo-input" placeholder="e.g. Sony, Apple, Dell" required>
+            </div>
           </div>
 
           <div class="form-row-2">
-            <div class="form-control-group flex-1">
-              <label for="input-brand">Brand / Manufacturer *</label>
-              <input type="text" id="input-brand" class="nivo-input" placeholder="e.g. Sony" required>
-            </div>
             <div class="form-control-group flex-1">
               <label for="input-category">Device Category</label>
               <select id="input-category" class="nivo-select">
@@ -390,20 +389,17 @@
                 <option value="Gaming Hardware">Gaming Hardware</option>
               </select>
             </div>
+            <div class="form-control-group flex-1">
+              <label for="input-retailer">Purchased From</label>
+              <input type="text" id="input-retailer" class="nivo-input" placeholder="e.g. Best Buy, Amazon, Apple Store">
+            </div>
           </div>
 
           <div class="form-row-2">
-            <div class="form-control-group flex-1">
-              <label for="input-retailer">Purchased From (Retailer) *</label>
-              <input type="text" id="input-retailer" class="nivo-input" placeholder="e.g. Best Buy #0492" required>
-            </div>
             <div class="form-control-group flex-1">
               <label for="input-purchase-date">Purchase Date *</label>
               <input type="date" id="input-purchase-date" class="nivo-input" required>
             </div>
-          </div>
-
-          <div class="form-row-2">
             <div class="form-control-group flex-1">
               <label for="input-warranty-months">Warranty Duration *</label>
               <select id="input-warranty-months" class="nivo-select">
@@ -414,15 +410,17 @@
                 <option value="60">60 Months (5 Years Major Appliance)</option>
               </select>
             </div>
+          </div>
+
+          <div class="form-row-2">
             <div class="form-control-group flex-1">
               <label for="input-price">Purchase Price ($) *</label>
               <input type="number" id="input-price" class="nivo-input" placeholder="e.g. 399.99" step="0.01" required>
             </div>
-          </div>
-
-          <div class="form-control-group">
-            <label for="input-serial">Serial Number / IMEI</label>
-            <input type="text" id="input-serial" class="nivo-input" placeholder="e.g. SN-8849201-X">
+            <div class="form-control-group flex-1">
+              <label for="input-serial">Serial Number / IMEI</label>
+              <input type="text" id="input-serial" class="nivo-input" placeholder="e.g. SN-8849201-X">
+            </div>
           </div>
         </div>
 
