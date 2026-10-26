@@ -1,14 +1,511 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>WarrantyVault — Sign In Gateway</title>
-  <meta http-equiv="refresh" content="0; url=frontend/login.html">
-  <script>
-    window.location.replace('frontend/login.html' + window.location.search + window.location.hash);
-  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In &mdash; WarrantyVault Web App</title>
+  <meta name="description" content="Sign in or create an account to access WarrantyVault AI hardware RMA & statutory claim engine.">
+
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      background-color: #060709;
+      color: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .auth-page-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 30px 20px 60px 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 480px;
+      background: rgba(13, 16, 23, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 36px 32px;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      position: relative;
+    }
+
+    .auth-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .auth-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(200, 255, 61, 0.1);
+      border: 1px solid rgba(200, 255, 61, 0.25);
+      border-radius: 9999px;
+      padding: 3px 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.62rem;
+      font-weight: 700;
+      color: #c8ff3d;
+      letter-spacing: 0.08em;
+      margin-bottom: 14px;
+    }
+
+    .auth-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.85rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: #ffffff;
+      margin-bottom: 8px;
+    }
+
+    .auth-subtitle {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.6);
+      line-height: 1.5;
+    }
+
+    /* 1-Click Instant Demo Box */
+    .instant-demo-card {
+      background: linear-gradient(135deg, rgba(200, 255, 61, 0.12) 0%, rgba(200, 255, 61, 0.04) 100%);
+      border: 1px solid rgba(200, 255, 61, 0.35);
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin-bottom: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.25s ease;
+      width: 100%;
+      text-align: left;
+    }
+    .instant-demo-card:hover {
+      background: linear-gradient(135deg, rgba(200, 255, 61, 0.2) 0%, rgba(200, 255, 61, 0.08) 100%);
+      border-color: #c8ff3d;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(200, 255, 61, 0.25);
+    }
+    .instant-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #c8ff3d;
+      color: #08090a;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+    .instant-icon svg { width: 18px; height: 18px; }
+    .instant-info {
+      flex: 1;
+    }
+    .instant-info strong {
+      display: block;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .instant-info span {
+      display: block;
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    .instant-arrow {
+      color: #c8ff3d;
+      width: 18px;
+      height: 18px;
+      transition: transform 0.2s ease;
+    }
+    .instant-demo-card:hover .instant-arrow {
+      transform: translateX(3px);
+    }
+
+    /* Auth Tab Pill */
+    .auth-tabs {
+      display: flex;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 22px;
+    }
+    .auth-tab-btn {
+      flex: 1;
+      padding: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.6);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .auth-tab-btn.active {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Form Fields */
+    .form-group {
+      margin-bottom: 16px;
+      text-align: left;
+    }
+    .form-label {
+      display: block;
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .auth-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #ffffff;
+      font-size: 0.88rem;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    .auth-input:focus {
+      border-color: #c8ff3d;
+      box-shadow: 0 0 16px rgba(200, 255, 61, 0.2);
+    }
+
+    .form-options-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.6);
+    }
+    .form-options-row a {
+      color: #c8ff3d;
+      text-decoration: none;
+    }
+    .form-options-row a:hover {
+      text-decoration: underline;
+    }
+
+    /* Primary Submit Button */
+    .btn-auth-submit {
+      width: 100%;
+      background: #c8ff3d;
+      color: #08090a;
+      font-weight: 700;
+      font-size: 0.88rem;
+      padding: 12px 20px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 20px rgba(200, 255, 61, 0.35);
+    }
+    .btn-auth-submit:hover {
+      background: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 26px rgba(255, 255, 255, 0.4);
+    }
+
+    .auth-divider-line {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 22px 0;
+      color: rgba(255, 255, 255, 0.35);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .auth-divider-line::before, .auth-divider-line::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Social Auth */
+    .social-auth-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .btn-social {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 10px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-social:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .auth-security-footer {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .auth-security-footer svg { width: 13px; height: 13px; color: #34d399; }
+  </style>
 </head>
-<body style="background:#08090a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-  <p>Redirecting to <a href="frontend/login.html" style="color:#c8ff3d;text-decoration:none;font-weight:bold;">WarrantyVault Sign In</a>...</p>
+<body>
+
+  <!-- Studio Ambient Glow Mesh -->
+  <div class="ambient-glow-top"></div>
+  <div class="ambient-glow-bottom"></div>
+
+  <!-- Top Navigation Header -->
+  <header class="nivo-navbar" style="margin-top: 14px;">
+    <div class="navbar-inner">
+      <a href="index.html" class="brand-block" style="text-decoration: none;" title="Back to Landing Page">
+        <div class="brand-symbol">
+          <i data-lucide="shield"></i>
+        </div>
+        <div class="brand-meta">
+          <div class="brand-title-row">
+            <span class="brand-title">Warranty<span class="brand-light">Vault</span></span>
+            <span class="brand-status-chip">
+              <span class="pulse-dot"></span>
+              <span>AUTH PORTAL</span>
+            </span>
+          </div>
+        </div>
+      </a>
+
+      <div class="nav-actions">
+        <a href="index.html" class="nav-back-chip" style="text-decoration: none;">
+          <i data-lucide="arrow-left"></i>
+          <span>Landing Overview</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Auth Main Container -->
+  <main class="auth-page-container">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="auth-kicker">
+          <span>DEVPOST LEARN HACKATHON 2026 // WEB APP</span>
+        </div>
+        <h1 class="auth-title" id="auth-heading">Sign In to Vault</h1>
+        <p class="auth-subtitle" id="auth-subheading">
+          Enter your credentials or use 1-click instant access to unlock your protected hardware screens.
+        </p>
+      </div>
+
+      <!-- 1-Click Fast Access Banner -->
+      <button type="button" class="instant-demo-card" id="btn-instant-demo" title="1-Click Fast Login">
+        <div class="instant-icon">
+          <i data-lucide="zap"></i>
+        </div>
+        <div class="instant-info">
+          <strong>⚡ Instant 1-Click Access</strong>
+          <span>Jump in as Alex Morgan with 4 preloaded hardware devices</span>
+        </div>
+        <i data-lucide="arrow-right" class="instant-arrow"></i>
+      </button>
+
+      <!-- Tabs: Sign In / Create Account -->
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab-btn active" id="tab-signin">Sign In</button>
+        <button type="button" class="auth-tab-btn" id="tab-signup">Create Account</button>
+      </div>
+
+      <!-- Auth Form -->
+      <form id="auth-form">
+        <div class="form-group hidden" id="group-name">
+          <label class="form-label" for="auth-name">Your Full Name</label>
+          <input type="text" id="auth-name" class="auth-input" placeholder="e.g. Alex Morgan">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="auth-email">Email Address</label>
+          <input type="email" id="auth-email" class="auth-input" placeholder="alex.morgan@hardwarevault.io" value="alex.morgan@hardwarevault.io" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="auth-password">Password</label>
+          <input type="password" id="auth-password" class="auth-input" placeholder="••••••••••••" value="demo12345" required>
+        </div>
+
+        <div class="form-options-row">
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input type="checkbox" id="remember-me" checked style="accent-color: #c8ff3d;">
+            <span>Remember this session</span>
+          </label>
+          <a href="#" id="forgot-password-link">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="btn-auth-submit" id="btn-submit-auth">
+          <span>Sign In to Web App</span>
+          <i data-lucide="arrow-right"></i>
+        </button>
+      </form>
+
+      <div class="auth-divider-line">Or continue with</div>
+
+      <div class="social-auth-grid">
+        <button type="button" class="btn-social" id="btn-google-login">
+          <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/><path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.8s.2-2.1.4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"/><path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 16.4C3.7 20.4 7.5 23 12 23z"/></svg>
+          <span>Google</span>
+        </button>
+        <button type="button" class="btn-social" id="btn-apple-login">
+          <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 0.92-2.85-.9.04-2 .6-2.64 1.35-.56.64-1.06 1.7-0.93 2.71 1.01.08 2.04-.46 2.65-1.21z"/></svg>
+          <span>Apple</span>
+        </button>
+      </div>
+
+      <div class="auth-security-footer">
+        <i data-lucide="shield-check"></i>
+        <span>Bank-grade 256-bit encryption &bull; Local session sandbox</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- Auth Logic Script -->
+  <script src="auth.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+
+      const params = new URLSearchParams(window.location.search);
+      const redirectTarget = params.get('redirect') || 'vault.html';
+
+      // Check if already authenticated
+      const existingUser = WarrantyAuth.getAuthUser();
+      if (existingUser && !params.get('force')) {
+        window.location.href = redirectTarget;
+        return;
+      }
+
+      const tabSignIn = document.getElementById('tab-signin');
+      const tabSignUp = document.getElementById('tab-signup');
+      const groupName = document.getElementById('group-name');
+      const heading = document.getElementById('auth-heading');
+      const subheading = document.getElementById('auth-subheading');
+      const btnSubmit = document.getElementById('btn-submit-auth');
+      const form = document.getElementById('auth-form');
+      const btnInstant = document.getElementById('btn-instant-demo');
+      const btnGoogle = document.getElementById('btn-google-login');
+      const btnApple = document.getElementById('btn-apple-login');
+
+      let mode = 'signin';
+
+      function setMode(newMode) {
+        mode = newMode;
+        if (mode === 'signup') {
+          tabSignUp.classList.add('active');
+          tabSignIn.classList.remove('active');
+          groupName.classList.remove('hidden');
+          heading.textContent = 'Create Vault Account';
+          subheading.textContent = 'Start protecting your consumer electronics with automated statutory warranty claims.';
+          btnSubmit.innerHTML = '<span>Create Free Account</span> <i data-lucide="arrow-right"></i>';
+        } else {
+          tabSignIn.classList.add('active');
+          tabSignUp.classList.remove('active');
+          groupName.classList.add('hidden');
+          heading.textContent = 'Sign In to Vault';
+          subheading.textContent = 'Enter your credentials or use 1-click instant access to unlock your protected hardware screens.';
+          btnSubmit.innerHTML = '<span>Sign In to Web App</span> <i data-lucide="arrow-right"></i>';
+        }
+        lucide.createIcons();
+      }
+
+      tabSignIn.addEventListener('click', () => setMode('signin'));
+      tabSignUp.addEventListener('click', () => setMode('signup'));
+
+      function handleAuthSuccess(userData) {
+        WarrantyAuth.loginUser(userData);
+        btnSubmit.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i> Access Granted! Entering Web App...';
+        btnSubmit.style.background = '#34d399';
+        lucide.createIcons();
+        setTimeout(() => {
+          window.location.href = redirectTarget;
+        }, 600);
+      }
+
+      // Instant 1-Click Access
+      btnInstant.addEventListener('click', () => {
+        handleAuthSuccess({
+          name: 'Alex Morgan',
+          email: 'alex.morgan@hardwarevault.io',
+          plan: 'Hackathon VIP • Pro Defense'
+        });
+      });
+
+      // Google / Apple
+      [btnGoogle, btnApple].forEach(btn => {
+        btn.addEventListener('click', () => {
+          handleAuthSuccess({
+            name: 'Alex Morgan',
+            email: 'alex.morgan@hardwarevault.io',
+            plan: 'OAuth Verified • Pro'
+          });
+        });
+      });
+
+      // Form submission
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const email = document.getElementById('auth-email').value;
+        const name = (mode === 'signup' && document.getElementById('auth-name').value) ? document.getElementById('auth-name').value : 'Alex Morgan';
+        handleAuthSuccess({
+          name: name,
+          email: email,
+          plan: 'Verified Hardware Owner'
+        });
+      });
+    });
+  </script>
 </body>
 </html>

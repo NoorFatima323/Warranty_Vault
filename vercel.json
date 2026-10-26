@@ -2,12 +2,12 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/vault", "destination": "/frontend/vault.html" },
-    { "source": "/login", "destination": "/frontend/login.html" },
-    { "source": "/scanner", "destination": "/frontend/scanner.html" },
-    { "source": "/claims", "destination": "/frontend/claims.html" },
-    { "source": "/analytics", "destination": "/frontend/analytics.html" },
-    { "source": "/demo", "destination": "/frontend/demo.html" },
-    { "source": "/screens_hub", "destination": "/frontend/screens_hub.html" }
+    { "source": "/vault", "destination": "/vault.html" },
+    { "source": "/login", "destination": "/login.html" },
+    { "source": "/scanner", "destination": "/scanner.html" },
+    { "source": "/claims", "destination": "/claims.html" },
+    { "source": "/analytics", "destination": "/analytics.html" },
+    { "source": "/demo", "destination": "/demo.html" },
+    { "source": "/screens_hub", "destination": "/screens_hub.html" }
   ]
 }

@@ -1,14 +1,515 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>WarrantyVault — Interactive Demo</title>
-  <meta http-equiv="refresh" content="0; url=frontend/demo.html">
-  <script>
-    window.location.replace('frontend/demo.html' + window.location.search + window.location.hash);
-  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WarrantyVault Demo — AI Hardware RMA & Statutory Claim Engine</title>
+  <meta name="description" content="Interactive demo for WarrantyVault: Optical receipt parsing, real-time microsecond countdown timers, and 1-click statutory RMA demand letters.">
+
+  <!-- Modern Typography: Inter, Outfit, Plus Jakarta Sans, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons & Confetti Library via CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- NIVO & WarrantyVault Unified Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Ensure demo screen displays as dedicated view */
+    body {
+      background-color: #060709;
+      color: #f1f5f9;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .app-view-container {
+      display: block !important;
+    }
+    .hidden {
+      display: none !important;
+    }
+  </style>
+  <script>window.location.replace('vault.html');</script>
 </head>
-<body style="background:#08090a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-  <p>Redirecting to <a href="frontend/demo.html" style="color:#c8ff3d;text-decoration:none;font-weight:bold;">WarrantyVault Demo</a>...</p>
+<body class="demo-screen">
+
+  <div id="app-view" class="app-view-container">
+      <!-- Ambient Studio Glow Mesh -->
+      <div class="ambient-glow-top"></div>
+      <div class="ambient-glow-bottom"></div>
+
+      <!-- App Header / Navigation (Refined NIVO Architecture) -->
+      <header class="nivo-navbar">
+        <div class="navbar-inner">
+          <!-- Left: Brand Logo -->
+          <div class="nav-left-group">
+            <a href="index.html" class="brand-block" id="btn-back-to-landing" style="text-decoration: none;" title="WarrantyVault — Back to Overview">
+              <div class="brand-symbol">
+                <i data-lucide="shield"></i>
+              </div>
+              <div class="brand-meta">
+                <div class="brand-title-row">
+                  <span class="brand-title">Warranty<span class="brand-light">Vault</span></span>
+                  <span class="brand-status-chip">
+                    <span class="pulse-dot"></span>
+                    <span>LIVE DEMO</span>
+                  </span>
+                </div>
+              </div>
+            </a>
+          </div>
+
+          <!-- Center: Quick Nav Links -->
+          <nav class="nav-center-pill">
+            <a href="#scanner-chassis" class="nav-link-pill">
+              <i data-lucide="scan-line"></i> Receipt OCR
+            </a>
+            <a href="#vault-section" class="nav-link-pill">
+              <i data-lucide="hard-drive"></i> Hardware Vault
+            </a>
+            <a href="#vault-section" class="nav-link-pill" onclick="const b = document.querySelector('[data-action=claim]'); if(b) b.click();">
+              <i data-lucide="scale"></i> Statutory Claims
+            </a>
+          </nav>
+
+          <!-- Right: Action Buttons -->
+          <div class="nav-actions">
+            <button type="button" class="btn-nivo-ghost" id="btn-reset-demo" title="Restore sample demo hardware">
+              <i data-lucide="rotate-ccw"></i>
+              <span>Reset</span>
+            </button>
+            <button type="button" class="btn-nivo-acid" id="btn-open-manual-nav">
+              <i data-lucide="plus"></i>
+              <span>Add Device</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+  <main class="nivo-main">
+
+    <!-- HERO SECTION (Hardware Product Showcase Style) -->
+    <section class="nivo-hero">
+      <div class="hero-kicker-pill">
+        <span class="kicker-tag">DEVPOST LEARN HACKATHON 2026</span>
+        <span class="kicker-text">AI Optical Receipt Ingestion & Statutory Claims</span>
+      </div>
+
+      <h1 class="hero-headline">
+        Stop throwing away broken electronics that are <span class="highlight-text">still under warranty</span>.
+      </h1>
+
+      <p class="hero-description">
+        Thermal store receipts fade. Boxes get thrown away. When hardware fails, WarrantyVault extracts proof-of-purchase data, tracks countdown timers, and generates certified RMA replacement demand letters citing statutory consumer protection laws.
+      </p>
+
+      <!-- LIVE TELEMETRY STATS HUD -->
+      <div class="telemetry-hud-strip">
+        <div class="telemetry-card">
+          <div class="telemetry-card-header">
+            <div class="telemetry-indicator green"></div>
+            <span class="telemetry-title">COVERED HARDWARE VALUE</span>
+          </div>
+          <div class="telemetry-metric-row">
+            <span class="telemetry-big-number" id="nav-total-val">$3,898.97</span>
+            <span class="telemetry-badge-chip green">100% VERIFIED</span>
+          </div>
+          <p class="telemetry-subtext">Active protection across 4 registered consumer devices</p>
+        </div>
+
+        <div class="telemetry-card urgent">
+          <div class="telemetry-card-header">
+            <div class="telemetry-indicator amber pulse"></div>
+            <span class="telemetry-title">EXPIRING IMMINENTLY</span>
+          </div>
+          <div class="telemetry-metric-row">
+            <span class="telemetry-big-number amber" id="nav-expiring-val">1 Item</span>
+            <span class="telemetry-badge-chip amber">23 DAYS LEFT</span>
+          </div>
+          <p class="telemetry-subtext">Sony WH-1000XM5 warranty window closing soon</p>
+        </div>
+
+        <div class="telemetry-card">
+          <div class="telemetry-card-header">
+            <div class="telemetry-indicator blue"></div>
+            <span class="telemetry-title">STATUTORY CONSUMER SHIELD</span>
+          </div>
+          <div class="telemetry-metric-row">
+            <span class="telemetry-big-number blue">ACTIVE</span>
+            <span class="telemetry-badge-chip blue">UCC § 2-314</span>
+          </div>
+          <p class="telemetry-subtext">Magnuson-Moss & EU Directive 2019/771 legal claim citations enabled</p>
+        </div>
+      </div>
+
+      <!-- SECTION SEPARATOR & MODULE HEADER -->
+      <div class="scanner-section-intro">
+        <div class="scanner-intro-line"></div>
+        <span class="scanner-intro-badge">
+          <i data-lucide="scan-line"></i>
+          <span>MODULE 01 &bull; OPTICAL RECEIPT INGESTION</span>
+        </span>
+        <div class="scanner-intro-line"></div>
+      </div>
+
+      <!-- RECEIPT DROPZONE & DEMO PRESETS DOCK -->
+      <div class="hardware-scanner-chassis" id="scanner-chassis">
+        <input type="file" id="file-input" accept="image/*,.pdf" style="display: none;">
+
+        <div class="scanner-dropzone-inner" id="dropzone-area">
+          <div class="scanner-laser-line" id="scanner-laser"></div>
+          
+          <div class="scanner-icon-box">
+            <i data-lucide="receipt"></i>
+          </div>
+
+          <h3 class="scanner-callout">Drop Receipt Photo, Invoice, or Proof PDF</h3>
+          <p class="scanner-subtext">Automatic optical parsing of merchant, purchase timestamp, serial number, and warranty terms</p>
+
+          <div class="scanner-button-row">
+            <button type="button" class="btn-nivo-white" id="btn-browse-file">
+              <i data-lucide="upload-cloud"></i>
+              <span>Browse Receipt File</span>
+            </button>
+            <button type="button" class="btn-nivo-ghost" id="btn-open-manual-hero">
+              <i data-lucide="edit-3"></i>
+              <span>Manual Entry</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3 Instant Demo Presets for Testing -->
+        <div class="hero-presets-strip">
+          <span class="presets-label"><i data-lucide="zap"></i> 1-CLICK DEMO HARDWARE PRESETS (FOR EVALUATION):</span>
+          <div class="presets-row">
+            <button class="preset-pill-card" data-preset="sony" id="preset-sony">
+              <span class="preset-emoji">🎧</span>
+              <div class="preset-info">
+                <strong>Sony WH-1000XM5</strong>
+                <span class="preset-status text-amber">Expiring in 23 Days!</span>
+              </div>
+              <i data-lucide="arrow-up-right" class="preset-arrow"></i>
+            </button>
+
+            <button class="preset-pill-card" data-preset="macbook" id="preset-macbook">
+              <span class="preset-emoji">💻</span>
+              <div class="preset-info">
+                <strong>MacBook Pro 14" M3</strong>
+                <span class="preset-status text-green">248 Days Coverage Left</span>
+              </div>
+              <i data-lucide="arrow-up-right" class="preset-arrow"></i>
+            </button>
+
+            <button class="preset-pill-card" data-preset="airfryer" id="preset-airfryer">
+              <span class="preset-emoji">🍳</span>
+              <div class="preset-info">
+                <strong>Ninja DualZone Air Fryer</strong>
+                <span class="preset-status text-red">Expired &bull; Statutory Claim</span>
+              </div>
+              <i data-lucide="arrow-up-right" class="preset-arrow"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Scanning Terminal Overlay -->
+        <div class="scanner-terminal-overlay hidden" id="scanner-terminal-overlay">
+          <div class="terminal-spinner-ring"></div>
+          <h4 class="terminal-step-title" id="scan-terminal-title">Scanning Receipt Matrix...</h4>
+          <div class="terminal-log-box" id="scan-terminal-log">
+            <code>> Optical character recognition initiated...</code>
+          </div>
+          <div class="terminal-progress-track">
+            <div class="terminal-progress-fill" id="scan-progress-fill" style="width: 20%;"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HARDWARE INVENTORY & VAULT CONTROLS -->
+    <section class="vault-inventory-section">
+      <div class="inventory-controls-header">
+        <div class="inventory-title-group">
+          <h2 class="inventory-heading">Protected Hardware Vault</h2>
+          <span class="inventory-count-tag" id="inventory-count-badge">4 Devices Tracked</span>
+        </div>
+
+        <div class="inventory-actions-group">
+          <!-- Search Box -->
+          <div class="nivo-search-input">
+            <i data-lucide="search"></i>
+            <input type="text" id="vault-search-input" placeholder="Search by model, serial, or retailer...">
+          </div>
+
+          <!-- Filter Segmented Tabs -->
+          <div class="nivo-segmented-tabs" id="filter-tabs">
+            <button class="tab-btn active" data-filter="all">All Devices</button>
+            <button class="tab-btn" data-filter="expiring">
+              <span class="tab-led amber"></span> Expiring Soon
+            </button>
+            <button class="tab-btn" data-filter="active">
+              <span class="tab-led green"></span> Active
+            </button>
+            <button class="tab-btn" data-filter="expired">
+              <span class="tab-led red"></span> Expired
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- HARDWARE PRODUCT CARDS GRID (NIVO Style) -->
+      <div class="hardware-cards-grid" id="warranty-grid">
+        <!-- Injected dynamically via app.js -->
+      </div>
+
+      <!-- Empty State -->
+      <div class="nivo-empty-state hidden" id="vault-empty-state">
+        <div class="empty-icon-shield"><i data-lucide="inbox"></i></div>
+        <h3>No matching hardware in vault</h3>
+        <p>Adjust your search filters or scan a new receipt to register an electronic item.</p>
+        <button class="btn-nivo-white" id="btn-empty-reset">
+          <i data-lucide="rotate-ccw"></i> Reload Demo Hardware
+        </button>
+      </div>
+    </section>
+
+    <!-- STATUTORY CONSUMER RIGHTS FOOTER CARD -->
+    <section class="statutory-legal-banner">
+      <div class="legal-badge-icon">
+        <i data-lucide="scale"></i>
+      </div>
+      <div class="legal-copy">
+        <h4>Did you know? Latent Hardware Defects are Protected Beyond the 1-Year Warranty</h4>
+        <p>
+          Under the <strong>Magnuson-Moss Warranty Act (US)</strong> and <strong>Statutory Conformance Directives (UK/EU Consumer Rights Act)</strong>, manufacturers are legally obligated to remediate inherent hardware design defects regardless of arbitrary 12-month commercial limitations. WarrantyVault automatically structures your claims around these statutory protections.
+        </p>
+      </div>
+      <div class="legal-stat">
+        <span class="stat-big-number">+$380</span>
+        <span class="stat-label">Average consumer recovery value per successful RMA demand</span>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== MODAL 1: 1-CLICK STATUTORY RMA CLAIM ENGINE ==================== -->
+  <div class="nivo-modal-backdrop hidden" id="modal-claim-backdrop">
+    <div class="nivo-modal-box modal-large">
+      <div class="modal-top">
+        <div class="modal-headline-group">
+          <div class="modal-status-icon amber"><i data-lucide="file-text"></i></div>
+          <div>
+            <h3 class="modal-h3">Statutory Warranty RMA & Replacement Claim Generator</h3>
+            <p class="modal-p">Certified legal demand letter citing statutory consumer protection and merchantability laws</p>
+          </div>
+        </div>
+        <button class="modal-close" id="btn-close-claim"><i data-lucide="x"></i></button>
+      </div>
+
+      <div class="modal-split-body">
+        <!-- Left: Defect & Claim Controls -->
+        <div class="claim-options-column">
+          <div class="claim-target-hardware-pill" id="claim-target-summary">
+            <!-- Dynamically populated -->
+          </div>
+
+          <div class="form-control-group">
+            <label for="claim-defect-type">Defect Classification</label>
+            <select id="claim-defect-type" class="nivo-select">
+              <option value="battery">Battery degradation / Refuses to charge or hold power</option>
+              <option value="shutdown">Sudden unexpected shutdowns / Motherboard power delivery failure</option>
+              <option value="audio_display">Severe audio distortion / Display flickering & dead pixels</option>
+              <option value="hinge_build">Hinge fracture / Premature structural plastic fatigue</option>
+              <option value="firmware">Bricked following official manufacturer firmware update</option>
+              <option value="intermittent">Intermittent Wi-Fi / Bluetooth chip failure</option>
+              <option value="other">General unprompted internal hardware failure (Non-accidental)</option>
+            </select>
+          </div>
+
+          <div class="form-control-group">
+            <label for="claim-defect-details">Defect Description & Symptoms</label>
+            <textarea id="claim-defect-details" class="nivo-textarea" rows="3" placeholder="Describe how the device stopped working under standard, intended consumer usage..."></textarea>
+          </div>
+
+          <div class="form-control-group">
+            <label for="claim-legal-jurisdiction">Applicable Consumer Protection Law</label>
+            <select id="claim-legal-jurisdiction" class="nivo-select">
+              <option value="US">United States: Magnuson-Moss Warranty Act & UCC § 2-314 (Implied Merchantability)</option>
+              <option value="UK_EU">UK & EU: Consumer Rights Act 2015 & Directive 2019/771 (2-Year Statutory Conformance)</option>
+              <option value="GLOBAL">International: Fair Trading Statutory Framework for Non-Conforming Goods</option>
+            </select>
+          </div>
+
+          <div class="form-control-group">
+            <label for="claim-remedy-requested">Demanded Legal Remedy</label>
+            <select id="claim-remedy-requested" class="nivo-select">
+              <option value="replace">Full Replacement with new unit (Zero cost to consumer)</option>
+              <option value="repair">Expedited OEM Certified Repair with prepaid return shipping label</option>
+              <option value="refund">Full Purchase Price Refund to original payment method</option>
+            </select>
+          </div>
+
+          <button type="button" class="btn-nivo-white w-full" id="btn-regenerate-letter">
+            <i data-lucide="refresh-cw"></i> Update Formal Demand Letter
+          </button>
+        </div>
+
+        <!-- Right: Certified Legal Letterhead Preview -->
+        <div class="claim-document-column">
+          <div class="document-toolbar">
+            <div class="document-badge">
+              <i data-lucide="award"></i> Certified Legal Tone
+            </div>
+            <div class="document-actions">
+              <button class="doc-btn" id="btn-copy-claim" title="Copy text to clipboard">
+                <i data-lucide="copy"></i> Copy Text
+              </button>
+              <button class="doc-btn" id="btn-print-claim" title="Print or save as PDF">
+                <i data-lucide="printer"></i> Print / PDF
+              </button>
+              <a href="#" class="doc-btn email-highlight" id="btn-email-claim" target="_blank" title="Open in Email App">
+                <i data-lucide="mail"></i> Email RMA
+              </a>
+            </div>
+          </div>
+
+          <div class="document-paper-container">
+            <div class="document-paper-content" id="letter-content" contenteditable="true" spellcheck="false">
+              <!-- Dynamically populated via app.js -->
+            </div>
+          </div>
+          <div class="document-footer-hint">
+            <i data-lucide="info"></i> Tip: You can click inside the document to customize your name, address, or details before sending.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 2: DIGITAL PROOF-OF-PURCHASE RECEIPT ==================== -->
+  <div class="nivo-modal-backdrop hidden" id="modal-receipt-backdrop">
+    <div class="nivo-modal-box modal-compact">
+      <div class="modal-top">
+        <div class="modal-headline-group">
+          <div class="modal-status-icon blue"><i data-lucide="receipt"></i></div>
+          <div>
+            <h3 class="modal-h3">Verified Proof of Purchase</h3>
+            <p class="modal-p">Stored digital store receipt with cryptographic verification stamp</p>
+          </div>
+        </div>
+        <button class="modal-close" id="btn-close-receipt"><i data-lucide="x"></i></button>
+      </div>
+
+      <div class="modal-body-scroll text-center">
+        <!-- Rendered Store Receipt -->
+        <div class="nivo-thermal-receipt" id="receipt-paper-render">
+          <!-- Injected via app.js -->
+        </div>
+
+        <div class="receipt-actions-cluster">
+          <button class="btn-nivo-ghost" id="btn-download-receipt-png">
+            <i data-lucide="printer"></i> Print Receipt Proof
+          </button>
+          <button class="btn-nivo-white" id="btn-claim-from-receipt">
+            <i data-lucide="file-text"></i> Proceed to Auto-Claim
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 3: MANUAL DEVICE ENTRY ==================== -->
+  <div class="nivo-modal-backdrop hidden" id="modal-manual-backdrop">
+    <div class="nivo-modal-box modal-compact">
+      <div class="modal-top">
+        <div class="modal-headline-group">
+          <div class="modal-status-icon green"><i data-lucide="plus-circle"></i></div>
+          <div>
+            <h3 class="modal-h3">Register Hardware Device</h3>
+            <p class="modal-p">Enter specifications manually from box or paper invoice</p>
+          </div>
+        </div>
+        <button class="modal-close" id="btn-close-manual"><i data-lucide="x"></i></button>
+      </div>
+
+      <form id="form-manual-entry">
+        <div class="modal-body-scroll">
+          <div class="form-row-2">
+            <div class="form-control-group flex-1">
+              <label for="input-product-name">Product Name *</label>
+              <input type="text" id="input-product-name" class="nivo-input" placeholder="e.g. Sony WH-1000XM5" required>
+            </div>
+            <div class="form-control-group flex-1">
+              <label for="input-brand">Brand / Manufacturer *</label>
+              <input type="text" id="input-brand" class="nivo-input" placeholder="e.g. Sony, Apple, Dell" required>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-control-group flex-1">
+              <label for="input-category">Device Category</label>
+              <select id="input-category" class="nivo-select">
+                <option value="Audio">Audio & Headphones</option>
+                <option value="Computing">Laptops & Workstations</option>
+                <option value="Appliances">Kitchen & Home Appliances</option>
+                <option value="Mobile">Smartphones & Tablets</option>
+                <option value="Gaming">Gaming Consoles & Displays</option>
+                <option value="Other">Other Consumer Electronics</option>
+              </select>
+            </div>
+            <div class="form-control-group flex-1">
+              <label for="input-retailer">Purchased From</label>
+              <input type="text" id="input-retailer" class="nivo-input" placeholder="e.g. Best Buy, Amazon, Apple Store">
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-control-group flex-1">
+              <label for="input-purchase-date">Purchase Date *</label>
+              <input type="date" id="input-purchase-date" class="nivo-input" required>
+            </div>
+            <div class="form-control-group flex-1">
+              <label for="input-warranty-months">Warranty Duration *</label>
+              <select id="input-warranty-months" class="nivo-select">
+                <option value="12">12 Months (Standard 1 Year)</option>
+                <option value="24">24 Months (2 Years EU / Extended)</option>
+                <option value="36">36 Months (3 Years AppleCare / Pro)</option>
+                <option value="6">6 Months (Refurbished)</option>
+                <option value="60">60 Months (5 Years Major Appliance)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-control-group flex-1">
+              <label for="input-price">Purchase Price ($) *</label>
+              <input type="number" id="input-price" class="nivo-input" placeholder="e.g. 399.99" step="0.01" required>
+            </div>
+            <div class="form-control-group flex-1">
+              <label for="input-serial">Serial Number / IMEI</label>
+              <input type="text" id="input-serial" class="nivo-input" placeholder="e.g. SN-8849201-X">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions-footer">
+          <button type="button" class="btn-nivo-ghost" id="btn-cancel-manual">Cancel</button>
+          <button type="submit" class="btn-nivo-white">
+            <i data-lucide="shield-check"></i> Register to Vault
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Stack -->
+  <div class="nivo-toast-container" id="toast-container"></div>
+    </div>
+
+
+  <!-- WARRANTYVAULT INTERACTIVE ENGINE SCRIPT -->
+  <script src="app.js"></script>
 </body>
 </html>

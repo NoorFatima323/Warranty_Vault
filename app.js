@@ -992,9 +992,8 @@ Sincerely,
   window.openDemoView = openDemoView;
   if (!window.openWarrantyApp) {
     window.openWarrantyApp = function(target) {
-      const isFrontend = window.location.pathname.includes('/frontend/');
-      const page = target || (isFrontend ? 'vault.html' : 'frontend/vault.html');
-      const loginPage = isFrontend ? 'login.html' : 'frontend/login.html';
+      const page = target || 'vault.html';
+      const loginPage = 'login.html';
       const user = localStorage.getItem('warranty_vault_auth_user');
       if (user) {
         window.location.href = page;

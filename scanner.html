@@ -1,14 +1,341 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>WarrantyVault — Receipt Scanner</title>
-  <meta http-equiv="refresh" content="0; url=frontend/scanner.html">
-  <script>
-    window.location.replace('frontend/scanner.html' + window.location.search + window.location.hash);
-  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Receipt Scanner &mdash; WarrantyVault Web App</title>
+  <meta name="description" content="AI optical receipt ingestion, proof-of-purchase data extraction, and statutory coverage verification.">
+
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Icons & Confetti -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      background-color: #060709;
+      color: #f1f5f9;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .nav-link-pill.active {
+      background: rgba(200, 255, 61, 0.15);
+      color: #c8ff3d;
+      border: 1px solid rgba(200, 255, 61, 0.3);
+    }
+    .hidden {
+      display: none !important;
+    }
+    .scanner-page-hero {
+      text-align: center;
+      max-width: 900px;
+      margin: 20px auto 36px auto;
+    }
+  </style>
 </head>
-<body style="background:#08090a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-  <p>Redirecting to <a href="frontend/scanner.html" style="color:#c8ff3d;text-decoration:none;font-weight:bold;">Receipt Scanner</a>...</p>
+<body class="demo-screen">
+
+  <!-- Studio Ambient Glow Mesh -->
+  <div class="ambient-glow-top"></div>
+  <div class="ambient-glow-bottom"></div>
+
+  <div class="app-layout-shell">
+    <!-- Left Sidepanel (Sidebar Navigation) -->
+    <aside class="app-sidebar" id="app-sidebar">
+      <div class="sidebar-header">
+        <a href="vault.html" class="sidebar-brand">
+          <div class="sidebar-brand-icon">
+            <i data-lucide="shield"></i>
+          </div>
+          <div class="sidebar-brand-text">
+            <span class="sidebar-brand-title">Warranty<span class="brand-light">Vault</span></span>
+            <span class="sidebar-brand-badge"><span class="pulse-dot"></span> WEB APP</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="sidebar-action-box">
+        <button type="button" class="btn-sidebar-add" id="btn-open-manual-nav">
+          <i data-lucide="plus"></i>
+          <span>Add Hardware</span>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav-container">
+        <div class="sidebar-group-label">Core Modules</div>
+        <a href="vault.html" class="sidebar-nav-link">
+          <i data-lucide="hard-drive"></i>
+          <span class="sidebar-nav-title">Hardware Vault</span>
+          <span class="sidebar-nav-badge">4</span>
+        </a>
+        <a href="scanner.html" class="sidebar-nav-link active">
+          <i data-lucide="scan-line"></i>
+          <span class="sidebar-nav-title">Receipt Scanner</span>
+          <span class="sidebar-nav-badge blue">OCR</span>
+        </a>
+        <a href="claims.html" class="sidebar-nav-link">
+          <i data-lucide="scale"></i>
+          <span class="sidebar-nav-title">Statutory Claims</span>
+          <span class="sidebar-nav-badge amber">LEGAL</span>
+        </a>
+        <a href="analytics.html" class="sidebar-nav-link">
+          <i data-lucide="bar-chart-3"></i>
+          <span class="sidebar-nav-title">Intelligence</span>
+          <span class="sidebar-nav-badge green">96</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button type="button" class="sidebar-sub-btn" id="btn-reset-demo" title="Restore sample demo hardware">
+          <i data-lucide="rotate-ccw"></i>
+          <span>Reset Demo Vault</span>
+        </button>
+        <a href="index.html" class="sidebar-sub-btn" title="Back to Landing Page">
+          <i data-lucide="arrow-left"></i>
+          <span>Landing Overview</span>
+        </a>
+        <div class="sidebar-user-block">
+          <div id="nav-user-container"></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Application Viewport -->
+    <div class="app-content-wrapper">
+      <header class="app-topbar">
+        <div class="app-breadcrumb-group">
+          <button type="button" class="sidebar-toggle-btn" id="btn-toggle-sidebar" aria-label="Toggle Navigation">
+            <i data-lucide="menu"></i>
+          </button>
+          <a href="index.html" class="breadcrumb-root">WarrantyVault</a>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-active"><i data-lucide="scan-line" class="w-3.5 h-3.5 text-acid"></i> Receipt OCR Scanner</span>
+        </div>
+        <div class="topbar-right-telemetry">
+          <span class="telemetry-live-pill">
+            <span class="pulse-dot"></span> AI Ingestion Active
+          </span>
+        </div>
+      </header>
+
+      <main class="app-viewport-body">
+    <div class="scanner-page-hero">
+      <div class="hero-kicker-pill">
+        <span class="kicker-tag">AI OPTICAL OCR INGESTION</span>
+        <span class="kicker-text">Thermal Receipts &bull; Invoices &bull; Proof PDFs</span>
+      </div>
+      <h1 class="hero-headline">
+        Optical Receipt Scanner &amp; <span class="highlight-text">Proof Extraction</span>.
+      </h1>
+      <p class="hero-description">
+        Thermal store receipts fade into illegible white slips in months. Drop your camera photo, retailer email PDF, or store invoice below. Our engine extracts the retailer, timestamp, serial number, and statutory warranty coverage instantly.
+      </p>
+    </div>
+
+    <!-- Hardware Scanner Chassis -->
+    <div class="hardware-scanner-chassis" id="scanner-chassis" style="max-width: 980px; margin: 0 auto;">
+      <input type="file" id="file-input" accept="image/*,.pdf" style="display: none;">
+
+      <div class="scanner-dropzone-inner" id="dropzone-area">
+        <div class="scanner-laser-line" id="scanner-laser"></div>
+        
+        <div class="scanner-icon-box">
+          <i data-lucide="receipt"></i>
+        </div>
+
+        <h3 class="scanner-callout">Drop Receipt Photo, Store Invoice, or Proof PDF</h3>
+        <p class="scanner-subtext">Automatic optical parsing of merchant, purchase timestamp, serial number, and statutory warranty terms</p>
+
+        <div class="scanner-button-row">
+          <button type="button" class="btn-nivo-white" id="btn-browse-file">
+            <i data-lucide="upload-cloud"></i>
+            <span>Browse Receipt File</span>
+          </button>
+          <button type="button" class="btn-nivo-ghost" id="btn-open-manual-hero">
+            <i data-lucide="edit-3"></i>
+            <span>Manual Entry</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3 Instant Demo Presets for Testing -->
+      <div class="hero-presets-strip">
+        <span class="presets-label"><i data-lucide="zap"></i> 1-CLICK DEMO HARDWARE PRESETS (EVALUATE OCR ENGINE):</span>
+        <div class="presets-row">
+          <button class="preset-pill-card" data-preset="sony" id="preset-sony">
+            <span class="preset-emoji">🎧</span>
+            <div class="preset-info">
+              <strong>Sony WH-1000XM5</strong>
+              <span class="preset-status text-amber">Expiring in 23 Days!</span>
+            </div>
+            <i data-lucide="arrow-up-right" class="preset-arrow"></i>
+          </button>
+
+          <button class="preset-pill-card" data-preset="macbook" id="preset-macbook">
+            <span class="preset-emoji">💻</span>
+            <div class="preset-info">
+              <strong>MacBook Pro 14" M3</strong>
+              <span class="preset-status text-green">248 Days Coverage Left</span>
+            </div>
+            <i data-lucide="arrow-up-right" class="preset-arrow"></i>
+          </button>
+
+          <button class="preset-pill-card" data-preset="airfryer" id="preset-airfryer">
+            <span class="preset-emoji">🍳</span>
+            <div class="preset-info">
+              <strong>Ninja DualZone Air Fryer</strong>
+              <span class="preset-status text-red">Expired &bull; Statutory Claim</span>
+            </div>
+            <i data-lucide="arrow-up-right" class="preset-arrow"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Scanning Terminal Overlay -->
+      <div class="scanner-terminal-overlay hidden" id="scanner-terminal-overlay">
+        <div class="terminal-spinner-ring"></div>
+        <h4 class="terminal-step-title" id="scan-terminal-title">Scanning Receipt Matrix...</h4>
+        <div class="terminal-log-box" id="scan-terminal-log">
+          <code>> Optical character recognition initiated...</code>
+        </div>
+        <div class="terminal-progress-track">
+          <div class="terminal-progress-fill" id="scan-progress-fill" style="width: 20%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Extraction Result Banner (Appears after successful scan) -->
+    <div class="extraction-result-card hidden" id="extraction-result-card" style="max-width: 980px; margin: 32px auto 0 auto; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 20px; padding: 24px; backdrop-filter: blur(16px);">
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(16, 185, 129, 0.15); color: #34d399; display: grid; place-items: center; font-size: 20px;">
+            <i data-lucide="check-circle-2"></i>
+          </div>
+          <div>
+            <h4 style="font-size: 1.1rem; font-weight: 700; color: #ffffff; margin-bottom: 2px;" id="extracted-device-name">Receipt Verified &amp; Ingested</h4>
+            <p style="font-size: 0.8rem; color: #94a3b8;" id="extracted-device-meta">Parsed serial number, verified merchant proof-of-purchase, and set legal countdown.</p>
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <a href="vault.html" class="btn-nivo-white" style="text-decoration: none;">
+            <i data-lucide="hard-drive"></i>
+            <span>View in Hardware Vault</span>
+          </a>
+          <a href="claims.html" class="btn-nivo-ghost" style="text-decoration: none;">
+            <i data-lucide="scale"></i>
+            <span>Check Statutory Rights</span>
+          </a>
+        </div>
+      </div>
+    </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL: MANUAL DEVICE REGISTRATION -->
+  <div class="nivo-modal-backdrop hidden" id="modal-manual-backdrop">
+    <div class="nivo-modal-card">
+      <div class="modal-card-header">
+        <div class="modal-title-lockup">
+          <div class="modal-icon-badge">
+            <i data-lucide="plus-circle"></i>
+          </div>
+          <div>
+            <h3 class="modal-heading">Manual Hardware Registration</h3>
+            <p class="modal-sub">Add a consumer device to your vault without an image scan</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" id="btn-close-manual">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <form id="form-manual-entry">
+        <div class="modal-form-body">
+          <div class="form-control-group">
+            <label for="input-product-name">Product Name & Model *</label>
+            <input type="text" id="input-product-name" class="nivo-input" placeholder="e.g. Sony WH-1000XM5 Wireless Headphones" required>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-control-group flex-1">
+              <label for="input-brand">Brand / Manufacturer *</label>
+              <input type="text" id="input-brand" class="nivo-input" placeholder="e.g. Sony" required>
+            </div>
+            <div class="form-control-group flex-1">
+              <label for="input-category">Device Category</label>
+              <select id="input-category" class="nivo-select">
+                <option value="Audio Gear">Audio Gear</option>
+                <option value="Laptop Workstation">Laptop Workstation</option>
+                <option value="Mobile Device">Mobile Device</option>
+                <option value="Kitchen Appliance">Kitchen Appliance</option>
+                <option value="Home Electronics">Home Electronics</option>
+                <option value="Gaming Hardware">Gaming Hardware</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-control-group flex-1">
+              <label for="input-retailer">Purchased From (Retailer) *</label>
+              <input type="text" id="input-retailer" class="nivo-input" placeholder="e.g. Best Buy #0492" required>
+            </div>
+            <div class="form-control-group flex-1">
+              <label for="input-purchase-date">Purchase Date *</label>
+              <input type="date" id="input-purchase-date" class="nivo-input" required>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-control-group flex-1">
+              <label for="input-warranty-months">Warranty Duration *</label>
+              <select id="input-warranty-months" class="nivo-select">
+                <option value="12">12 Months (Standard 1 Year)</option>
+                <option value="24">24 Months (2 Years EU / Extended)</option>
+                <option value="36">36 Months (3 Years AppleCare / Pro)</option>
+                <option value="6">6 Months (Refurbished)</option>
+                <option value="60">60 Months (5 Years Major Appliance)</option>
+              </select>
+            </div>
+            <div class="form-control-group flex-1">
+              <label for="input-price">Purchase Price ($) *</label>
+              <input type="number" id="input-price" class="nivo-input" placeholder="e.g. 399.99" step="0.01" required>
+            </div>
+          </div>
+
+          <div class="form-control-group">
+            <label for="input-serial">Serial Number / IMEI</label>
+            <input type="text" id="input-serial" class="nivo-input" placeholder="e.g. SN-8849201-X">
+          </div>
+        </div>
+
+        <div class="modal-actions-footer">
+          <button type="button" class="btn-nivo-ghost" id="btn-cancel-manual">Cancel</button>
+          <button type="submit" class="btn-nivo-white">
+            <i data-lucide="shield-check"></i> Register to Vault
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Stack -->
+  <div class="nivo-toast-container" id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="auth.js"></script>
+  <script src="app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      WarrantyAuth.requireAuth();
+      if (window.lucide) lucide.createIcons();
+    });
+  </script>
 </body>
 </html>

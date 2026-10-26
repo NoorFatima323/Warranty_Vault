@@ -62,7 +62,7 @@
     if (!container) return;
 
     const user = getAuthUser();
-    const pfx = window.location.pathname.includes('/frontend/') ? '' : 'frontend/';
+    const pfx = '';
     if (user) {
       container.innerHTML = `
         <div class="user-chip-dropdown" id="user-chip-menu">

@@ -186,9 +186,8 @@ background: currentColor; vertical-align: -0.12em; opacity: 0; }
     <script>
       // Web App Gateway: Redirects to login if unauthenticated, or directly to vault if authenticated
       function openWarrantyApp(target) {
-        var isFrontend = window.location.pathname.includes('/frontend/');
-        var page = target || (isFrontend ? 'vault.html' : 'frontend/vault.html');
-        var loginPage = isFrontend ? 'login.html' : 'frontend/login.html';
+        var page = target || 'vault.html';
+        var loginPage = 'login.html';
         var user = localStorage.getItem('warranty_vault_auth_user');
         if (user) {
           window.location.href = page;
