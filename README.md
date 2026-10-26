@@ -56,35 +56,27 @@ Unlike generic warranty apps, WarrantyVault incorporates enforceable statutory c
 
 ```text
 Warranty_Vault/
-├── index.html                             # Primary entry point & Landing Page Router
-├── screens_hub.html                       # Visual Screen Catalog & Interactive Navigator
-├── 00_auth_login_signup.html              # Biometric Auth Gateway (1-Click Judge Pass)
-├── 01_landing_page_full.html              # Marketing Showcase with Interactive ROI Sandbox
-├── 02_hardware_vault.html                 # Protected Hardware Vault (Live Telemetry & Countdowns)
-├── 03_optical_receipt_scanner.html        # Optical Receipt Scanner with Animated OCR Matrix
-├── 04_statutory_claims_studio.html        # Statutory RMA Claims Studio & Demand Letter Engine
-├── 05_warranty_defense_intelligence.html  # Defense Health Intelligence & Expiration Radar
-├── login.html                             # Direct alias for Authentication Gateway
-├── vault.html                             # Direct alias for Hardware Vault
-├── scanner.html                           # Direct alias for Receipt Scanner
-├── claims.html                            # Direct alias for Claims Studio
-├── analytics.html                         # Direct alias for Defense Intelligence
-├── demo.html                              # Full interactive sandbox demonstration
-├── auth.js                                # Session security guard & 1-click biometric auth
-├── app.js                                 # Reactive countdown timers, OCR & claim generator
-├── style.css                              # Dark luxury glassmorphism design system
-├── assets/                                # Hardware imagery, receipts, and brand assets
-│   ├── hardware_vault.jpg
-│   ├── hero_device.jpg
-│   └── receipt_scan.jpg
-├── frontend/                              # Clean mirrored frontend web distribution
-│   ├── index.html
-│   ├── screens_hub.html
-│   ├── style.css
-│   ├── app.js
-│   ├── auth.js
-│   ├── assets/
-│   └── README.md
+├── index.html                             # Entry point router & marketing showcase
+├── frontend/                              # Complete Web App UI & Screen Modules
+│   ├── index.html                         # Sovereign Landing Page Router
+│   ├── screens_hub.html                   # Visual Screen Catalog & Interactive Navigator
+│   ├── 00_auth_login_signup.html          # Biometric Auth Gateway (1-Click Judge Pass)
+│   ├── 01_landing_page_full.html          # Marketing Showcase with Interactive ROI Sandbox
+│   ├── 02_hardware_vault.html             # Protected Hardware Vault (Live Telemetry & Countdowns)
+│   ├── 03_optical_receipt_scanner.html    # Optical Receipt Scanner with Matrix OCR Terminal
+│   ├── 04_statutory_claims_studio.html    # Statutory RMA Claims Studio & Demand Letter Engine
+│   ├── 05_warranty_defense_intelligence.html # Defense Health Intelligence & Expiration Radar
+│   ├── login.html                         # Direct alias for Authentication Gateway
+│   ├── vault.html                         # Direct alias for Hardware Vault
+│   ├── scanner.html                       # Direct alias for Receipt Scanner
+│   ├── claims.html                        # Direct alias for Claims Studio
+│   ├── analytics.html                     # Direct alias for Defense Intelligence
+│   ├── demo.html                          # Standalone Interactive Sandbox Simulator
+│   ├── auth.js                            # Session security guard & biometric auth
+│   ├── app.js                             # Reactive countdown timers, OCR & claim generator
+│   ├── style.css                          # Dark luxury glassmorphism design system
+│   ├── assets/                            # Hardware imagery, receipts, and brand assets
+│   └── README.md                          # Frontend architecture documentation
 ├── backend/                               # Python AI & OCR Microservice
 │   ├── server.py                          # FastAPI REST API endpoints
 │   ├── requirements.txt                   # FastAPI, Uvicorn, Pydantic, Gemini AI
@@ -126,13 +118,13 @@ Experience the full WarrantyVault platform in under 60 seconds:
 1. **Launch the Live Application:**
    Open [**WarrantyVault Live**](https://noorfatima323.github.io/Warranty_Vault/) in your browser.
 2. **Access via 1-Click Judge Pass:**
-   Navigate to [**Login**](https://noorfatima323.github.io/Warranty_Vault/login.html) and click the purple **"Enter as Alex Morgan (Judge Pass) ➔"** button for instant biometric access without typing.
+   Navigate to [**Login**](https://noorfatima323.github.io/Warranty_Vault/frontend/login.html) and click the purple **"Enter as Alex Morgan (Judge Pass) ➔"** button for instant biometric access without typing.
 3. **Explore the Hardware Vault:**
-   In [**Protected Hardware Vault**](https://noorfatima323.github.io/Warranty_Vault/vault.html), observe the real-time millisecond countdowns tracking $8,797.98 of hardware.
+   In [**Protected Hardware Vault**](https://noorfatima323.github.io/Warranty_Vault/frontend/vault.html), observe the real-time millisecond countdowns tracking $8,797.98 of hardware.
 4. **Test the Optical Receipt Scanner:**
-   Visit [**Receipt Scanner**](https://noorfatima323.github.io/Warranty_Vault/scanner.html), click the preset **"MacBook Pro 16 Receipt"**, and watch the terminal matrix parse the model and serial in 2.3 seconds.
+   Visit [**Receipt Scanner**](https://noorfatima323.github.io/Warranty_Vault/frontend/scanner.html), click the preset **"MacBook Pro 16 Receipt"**, and watch the terminal matrix parse the model and serial in 2.3 seconds.
 5. **Generate a Statutory RMA Demand Letter:**
-   In [**Statutory Claims Studio**](https://noorfatima323.github.io/Warranty_Vault/claims.html), select **"Uniform Commercial Code § 2-314"** or **"EU Directive 2019/771"** to generate an airtight legal replacement notice.
+   In [**Statutory Claims Studio**](https://noorfatima323.github.io/Warranty_Vault/frontend/claims.html), select **"Uniform Commercial Code § 2-314"** or **"EU Directive 2019/771"** to generate an airtight legal replacement notice.
 
 ---
 

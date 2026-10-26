@@ -186,16 +186,15 @@ background: currentColor; vertical-align: -0.12em; opacity: 0; }
     <script>
       // Web App Gateway: Redirects to login if unauthenticated, or directly to vault if authenticated
       function openWarrantyApp(target) {
-        var page = target || 'vault.html';
-        if (window.WarrantyAuth) {
-          WarrantyAuth.checkAuthAndGo(page);
+        var page = target || 'frontend/vault.html';
+        if (page && !page.startsWith('frontend/')) {
+          page = 'frontend/' + page;
+        }
+        var user = localStorage.getItem('warranty_vault_auth_user');
+        if (user) {
+          window.location.href = page;
         } else {
-          var user = localStorage.getItem('warranty_vault_auth_user');
-          if (user) {
-            window.location.href = page;
-          } else {
-            window.location.href = 'login.html?redirect=' + encodeURIComponent(page);
-          }
+          window.location.href = 'frontend/login.html?redirect=' + encodeURIComponent(page);
         }
       }
       function closeWarrantyApp() {
@@ -204,7 +203,7 @@ background: currentColor; vertical-align: -0.12em; opacity: 0; }
 
       window.addEventListener('load', function() {
         if (window.location.hash === '#demo') {
-          openWarrantyApp('vault.html');
+          openWarrantyApp('frontend/vault.html');
         }
       });
     </script>
